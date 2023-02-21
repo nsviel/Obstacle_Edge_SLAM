@@ -3,12 +3,6 @@
 #if defined(WITH_SLAM)
 #include "SLAM/Module_slam.h"
 #endif
-#if defined(WITH_RADIOMETRY)
-#include "Radiometry/Module_radiometry.h"
-#endif
-#if defined(WITH_REGISTRATION)
-#include "Registration/Module_registration.h"
-#endif
 #if defined(WITH_OBSTACLE)
 #include "Obstacle/Module_obstacle.h"
 #endif
@@ -33,18 +27,6 @@ Node_module::~Node_module(){}
 
 void Node_module::load_module(){
   //---------------------------
-
-  if(WITH_RADIOMETRY){
-    this->module_radio = new Module_radiometry(this);
-  }else{
-    this->module_radio = nullptr;
-  }
-
-  if(WITH_REGISTRATION){
-    this->module_regist = new Module_registration(this);
-  }else{
-    this->module_regist = nullptr;
-  }
 
   if(WITH_SLAM){
     this->module_slam = new Module_slam(this);

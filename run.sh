@@ -1,7 +1,7 @@
 #!/bin/sh
 
-
-cd build 
+mkdir -p build
+cd build
 cmake ..
 make -j4
-./executable
+./executable server
