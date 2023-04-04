@@ -10,5 +10,5 @@ sudo docker run \
     -p 2370:2370 \
     -p 8888:8888 \
     -v data:/app/hubium \
-    velodium
+    edge_processing
 xhost - >/dev/null
