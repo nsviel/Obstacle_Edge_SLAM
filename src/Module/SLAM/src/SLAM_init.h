@@ -1,7 +1,7 @@
 #ifndef SLAM_INIT_H
 #define SLAM_INIT_H
 
-#include "../../../common.h"
+#include "../Base/common.h"
 
 class SLAM;
 class SLAM_map;
@@ -17,12 +17,12 @@ public:
 
 public:
   //Main functions
-  void compute_initialization(Cloud* cloud, int subset_ID);
+  void compute_initialization(Collection* collection, int subset_ID);
 
   //Subfunctions
-  void init_frame_ID(Cloud* cloud, int subset_ID);
-  void init_frame_ts(Cloud* cloud, int subset_ID);
-  void init_frame_chain(Cloud* cloud, int subset_ID);
+  void init_frame_ID(Collection* collection, int subset_ID);
+  void init_frame_ts(Collection* collection, int subset_ID);
+  void init_frame_chain(Collection* collection, int subset_ID);
 
 private:
   SLAM_map* slam_map;

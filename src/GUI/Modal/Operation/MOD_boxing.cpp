@@ -1,10 +1,11 @@
 #include "MOD_boxing.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Engine/Scene/Glyph/Glyphs.h"
-#include "../../../Engine/Scene/Glyph/Object.h"
-#include "../../../Engine/Scene/Glyph/Cloud/Box.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
+#include "../../../Scene/Glyph/Glyphs.h"
+#include "../../../Scene/Glyph/Object.h"
+#include "../../../Scene/Glyph/Cloud/Box.h"
 #include "../../../Operation/Node_operation.h"
 #include "../../../Operation/Cloud/Extraction.h"
 #include "../../../Operation/Cloud/Boxing.h"
@@ -18,11 +19,13 @@ MOD_boxing::MOD_boxing(Node_operation* node_ope){
   //---------------------------
 
   Node_engine* node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->objectManager = node_engine->get_objectManager();
+  this->objectManager = node_scene->get_objectManager();
+#include "../../../Scene/Node_scene.h"
   this->extractionManager = node_ope->get_extractionManager();
-  this->sceneManager = node_engine->get_sceneManager();
-  this->glyphManager = node_engine->get_glyphManager();
+  this->sceneManager = node_scene->get_sceneManager();
+  this->glyphManager = node_scene->get_glyphManager();
   this->boxingManager = node_ope->get_boxingManager();
 
   this->item_width = 150;
@@ -58,13 +61,13 @@ void MOD_boxing::box_shape(){
 
   static int box_shape = 0;
   if(ImGui::RadioButton("Wire", &box_shape, 0)){
-    glyph->draw_type = "line";
+    glyph->draw_type_name = "line";
     box->build_box_location();
     glyphManager->update_glyph_location(box->get_glyph());
   }
   ImGui::SameLine();
   if(ImGui::RadioButton("Plain", &box_shape, 1)){
-    glyph->draw_type = "triangle";
+    glyph->draw_type_name = "triangle";
     box->build_box_location();
     glyphManager->update_glyph_location(box->get_glyph());
   }
@@ -104,14 +107,14 @@ void MOD_boxing::control_box(){
   //---------------------------
 }
 void MOD_boxing::change_box(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
-  if(cloud != nullptr){
+  if(collection != nullptr){
     vec3 min_perc = vec3(xmin, ymin, zmin);
     vec3 max_perc = vec3(xmax, ymax, zmax);
-    boxingManager->compute_box_MinMax(cloud, min_perc, max_perc);
-    boxingManager->compute_visibility(cloud);
+    boxingManager->compute_box_MinMax(collection, min_perc, max_perc);
+    boxingManager->compute_visibility(collection);
   }
 
   //---------------------------

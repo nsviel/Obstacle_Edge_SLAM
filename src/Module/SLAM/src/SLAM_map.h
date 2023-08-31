@@ -1,7 +1,8 @@
 #ifndef SLAM_MAP_H
 #define SLAM_MAP_H
 
-#include "../../../common.h"
+#include "../Base/struct_voxelMap.h"
+#include "../Base/common.h"
 
 class SLAM;
 class Scene;
@@ -19,13 +20,13 @@ public:
 public:
   //Main function
   void update_configuration();
-  void update_map(Cloud* cloud, int subset_ID);
+  void update_map(Collection* collection, int subset_ID);
   void reset_map();
 
   //Sub-function
   void add_pointToMap(slamap* map, vector<vec3>& xyz);
-  void add_pointToMap(slamap* map, Subset* subset);
-  void add_pointToCloud(slamap* map, Subset* subset);
+  void add_pointToMap(slamap* map, Cloud* cloud);
+  void add_pointToCloud(slamap* map, Cloud* cloud);
   void save_local_cloud();
 
   //Voxel specific function

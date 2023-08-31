@@ -1,14 +1,16 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include "../../Scene/Data/Data.h"
 #include "../../common.h"
 
 class Node_engine;
 class Scene;
 class Glyphs;
-class GUI;
 class Object;
 class Camera;
+class Texture;
+class GPU_data;
 
 
 class Engine
@@ -19,25 +21,24 @@ public:
   ~Engine();
 
 public:
-  //Program functions
-  void runtime_scene();
-  void runtime_draw_glyph();
-  void runtime_draw_cloud();
-  void runtime_camera();
+  //Misc drawing function
+  void draw_untextured_glyph();
+  void arcball_cam_lookat();
 
-  //Subfunctions
-  void draw_mesh(Subset* subset, string draw_type);
+  //Drawing function
+  void draw_light();
+  void draw_untextured_cloud();
+  void draw_textured_cloud();
 
 private:
   Node_engine* node_engine;
   Scene* sceneManager;
   Glyphs* glyphManager;
-  GUI* guiManager;
   Object* objectManager;
   Camera* cameraManager;
-
-  bool is_visualization;
-  uint modelID, comID;
+  Texture* texManager;
+  GPU_data* gpuManager;
+  Data* data;
 };
 
 #endif

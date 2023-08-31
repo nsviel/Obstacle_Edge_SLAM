@@ -11,6 +11,7 @@ class Node_engine;
 class Node_operation;
 
 class Renderer;
+class GPU_screenshot;
 class Configuration;
 class Saver;
 class Scene;
@@ -26,7 +27,7 @@ public:
 public:
   //Main functions
   void update_configuration();
-  void compute_online(Cloud* cloud, int ID_subset);
+  void compute_online(Collection* collection, int ID_object);
   void clean_directories();
   void check_directories();
 
@@ -37,9 +38,9 @@ public:
   void save_image_path();
 
   //Frame saving
-  void save_frame(Cloud* cloud, int ID_subset);
-  void save_frame_subset(Subset* subset);
-  void save_frame_set(Cloud* cloud, int ID_subset);
+  void save_frame(Collection* collection, int ID_object);
+  void save_frame_subset(Cloud* cloud);
+  void save_frame_set(Collection* collection, int ID_object);
 
   //Path selection
   void select_path_image();
@@ -59,6 +60,7 @@ public:
 private:
   Node_interface* node_interface;
   Renderer* renderManager;
+  GPU_screenshot* screenshotManager;
   Configuration* configManager;
   Saver* saverManager;
   Scene* sceneManager;

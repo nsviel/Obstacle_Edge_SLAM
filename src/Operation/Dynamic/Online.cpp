@@ -7,7 +7,7 @@
 #include "../../Module/SLAM/Module_slam.h"
 #include "../../Module/SLAM/src/SLAM.h"
 
-#include "../../Interface/File/Directory.h"
+#include "../../Specific/File/Directory.h"
 #include "../../Interface/IO/Recorder.h"
 #include "../../Interface/Node_interface.h"
 #include "../../Interface/Network/HTTP/http_command.h"
@@ -17,18 +17,19 @@
 #include "../../Operation/Transformation/Transformation.h"
 #include "../../Operation/Transformation/Filter.h"
 
-#include "../../Engine/OpenGL/Renderer.h"
+#include "../../Engine/Rendering/Renderer.h"
 #include "../../Engine/Camera/Followup.h"
 #include "../../Engine/Core/Dimension.h"
 #include "../../Engine/Core/Engine.h"
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Glyph/Object.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Scene/Glyph/Object.h"
+#include "../../Engine/Core/Configuration.h"
 
-#include "../../Specific/fct_math.h"
-#include "../../Specific/fct_transtypage.h"
-#include "../../Specific/fct_chrono.h"
+#include "../../Specific/Function/fct_math.h"
+#include "../../Specific/Function/fct_transtypage.h"
+#include "../../Specific/Function/fct_chrono.h"
 
 
 //Constructor / Destructor
@@ -36,13 +37,14 @@ Online::Online(Node_operation* node_ope){
   //---------------------------
 
   this->node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
   this->filterManager = node_ope->get_filterManager();
   this->dimManager = node_engine->get_dimManager();
   this->configManager = node_engine->get_configManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->colorManager = node_ope->get_colorManager();
   this->followManager = node_engine->get_followManager();
-  this->objectManager = node_engine->get_objectManager();
+  this->objectManager = node_scene->get_objectManager();
   this->renderManager = node_engine->get_renderManager();
   this->visibilityManager = node_ope->get_visibilityManager();
   this->httpManager = new http_command();
@@ -62,10 +64,10 @@ void Online::update_configuration(){
 
   //---------------------------
 }
-void Online::compute_onlineOpe(Cloud* cloud, int ID_subset){
-  //This function is called each time a new subset arrives
+void Online::compute_onlineOpe(Collection* collection, int ID_object){
+  //This function is called each time a new cloud arrives
   Node_module* node_module = node_engine->get_node_module();
-  Subset* subset = sceneManager->get_subset_byID(cloud, ID_subset);
+  Object_* object = collection->get_obj_byID(ID_object);
   auto t1 = start_chrono();
   //---------------------------
 
@@ -73,51 +75,55 @@ void Online::compute_onlineOpe(Cloud* cloud, int ID_subset){
   this->compute_http_command();
 
   //Some init operation
-  if(subset == nullptr) return;
-  cloud->subset_selected = subset;
+  if(object == nullptr) return;
+  if(object->obj_type != "cloud") return;
+  collection->selected_obj = object;
 
-  //Control subset visibilities
-  visibilityManager->compute_visibility(cloud, ID_subset);
+  //Control object visibilities
+  visibilityManager->compute_visibility(collection, ID_object);
 
-  //Make slam on the current subset
-  node_module->online(cloud, ID_subset);
-  sceneManager->update_subset_location(subset);
+  //Make slam on the current object
+  if(with_slam){
+    node_module->online(collection, ID_object);
+    sceneManager->update_buffer_location(object);
+  }
 
-  //Make cleaning on the current subset
+  //Make cleaning on the current object
   if(with_filter_sphere){
-    filterManager->filter_sphere_subset(subset);
+    filterManager->filter_sphere_cloud((Cloud*)object);
   }
 
   //If camera follow up option activated
-  followManager->camera_followup(cloud, ID_subset);
+  if(with_camera_follow){
+    followManager->camera_followup(collection, ID_object);
+  }
 
   //Colorization
-  colorManager->make_colorization(cloud, ID_subset);
+  colorManager->make_colorization(collection, ID_object);
 
   //Update dynamic interfaces
-  this->compute_recording(cloud, ID_subset);
+  this->compute_recording(collection, ID_object);
 
   //---------------------------
   this->time_ope = stop_chrono(t1);
-  this->compute_displayStats(subset);
+  this->compute_displayStats(object);
 }
 
 //Subfunctions
-void Online::compute_recording(Cloud* cloud, int& ID_subset){
+void Online::compute_recording(Collection* collection, int& ID_object){
   Node_interface* node_interface = node_engine->get_node_interface();
   Recorder* recordManager = node_interface->get_recordManager();
   //---------------------------
 
-  recordManager->compute_online(cloud, ID_subset);
+  recordManager->compute_online(collection, ID_object);
 
   //---------------------------
 }
-void Online::compute_displayStats(Subset* subset){
-  Frame* frame = &subset->frame;
+void Online::compute_displayStats(Object_* object){
   //---------------------------
 
   //Consol result
-  string stats = subset->name + ": ope in ";
+  string stats = object->name + ": ope in ";
   stats += to_string((int)time_ope) + " ms";
   console.AddLog("#", stats);
 

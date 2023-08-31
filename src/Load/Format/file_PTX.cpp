@@ -21,7 +21,7 @@ Data_file* file_PTX::Loader(string pathFile){
   list_ptxCloud = new list<PTXCloud*>;
   PTXCloud* cloud = new PTXCloud;
   data_out = new Data_file();
-  data_out->path = pathFile;
+  data_out->path_file = pathFile;
   //---------------------------
 
   //Open file
@@ -67,7 +67,7 @@ Data_file* file_PTX::Loader(string pathFile){
   this->Loader_assembling();
 
   //---------------------------
-  data_out->size = data_out->location.size();
+  data_out->size = data_out->xyz.size();
   return data_out;
 }
 bool file_PTX::Exporter(string path){
@@ -84,31 +84,31 @@ bool file_PTX::Exporter(string path){
     return 0;
   }
   /*
-  for(int i=0; i<list_cloud->size(); i++)
+  for(int i=0; i<list_collection->size(); i++)
   {
     //Select clouds one by one
-    Cloud* cloud = &*next(list_cloud->begin(),i);
+    Collection* collection = &*next(list_collection->begin(),i);
 
     //----->HEADER
     //***********************************
     int nbRows = 3;
-    if(cloud->subset[0].I.size() != 0) nbRows++;
-    if(cloud->subset[0].has_color) nbRows++;
-    if(cloud->subset[0].N.size() != 0) nbRows++;
+    if(collection->list_obj[0].I.size() != 0) nbRows++;
+    if(collection->list_obj[0].has_color) nbRows++;
+    if(collection->list_obj[0].N.size() != 0) nbRows++;
     //number of columns
-    file << cloud->subset[0].nb_point << endl;
+    file << collection->list_obj[0].nb_point << endl;
     //number of rows
     file << nbRows << endl;
     //scanner registered position
-    vec3& ScanPos = cloud->scanner.Position;
+    vec3& ScanPos = collection->scanner.Position;
     file << ScanPos.x << " " << ScanPos.y << " " << ScanPos.z << endl;
     //scanner orientation
     file << 1 << " " << 0 << " " << 0 << endl;
     file << 0 << " " << 1 << " " << 0 << endl;
     file << 0 << " " << 0 << " " << 1 << endl;
     //transformation matrix
-    mat4& transMat = cloud->subset[0].trans;
-    mat4& rotMat = cloud->subset[0].rotat;
+    mat4& transMat = collection->list_obj[0].trans;
+    mat4& rotMat = collection->list_obj[0].rotat;
     mat4 finalMat = transpose(transMat * rotMat);
     file << setprecision(6) << finalMat[0][0] << " " << finalMat[0][1] << " " << finalMat[0][2] << " " << finalMat[0][3] << endl;
     file << setprecision(6) << finalMat[1][0] << " " << finalMat[1][1] << " " << finalMat[1][2] << " " << finalMat[1][3] << endl;
@@ -130,16 +130,16 @@ bool file_PTX::Exporter(string path){
       file << setprecision(precision) << pos[i].x <<" "<< pos[i].y <<" "<< pos[i].z ;
 
       //---> R
-      if(cloud->subset[0].I.size() != 0)
+      if(collection->list_obj[0].I.size() != 0)
         file << setprecision(0) <<" "<< ref[i];
 
       //---> rgb
       //Color only
-      if(cloud->subset[0].has_color)
+      if(collection->list_obj[0].has_color)
         file << setprecision(0) <<" "<< col[i].x * 255 <<" "<< col[i].y * 255 <<" "<< col[i].z * 255;
 
       //---> nx ny nz
-      if(cloud->subset[0].N.size() != 0)
+      if(collection->list_obj[0].N.size() != 0)
         file << setprecision(precision) <<" "<< nor[i].x <<" "<< nor[i].y <<" "<< nor[i].z;
 
       //We end the line
@@ -217,9 +217,9 @@ void file_PTX::Loader_assembling(){
     PTXCloud* cloud = *next(list_ptxCloud->begin(),i);
 
     for(int j=0; j<cloud->location.size(); j++){
-      data_out->location.push_back(cloud->location[j]);
-      data_out->intensity.push_back(cloud->intensity[j]);
-      data_out->color.push_back(cloud->color[j]);
+      data_out->xyz.push_back(cloud->location[j]);
+      data_out->I.push_back(cloud->intensity[j]);
+      data_out->rgb.push_back(cloud->color[j]);
     }
   }
   //---------------------------

@@ -8,14 +8,16 @@
 #include "../../Operation/Node_operation.h"
 #include "../../Operation/Dynamic/Online.h"
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Engine/Core/Configuration.h"
+#include "../../Engine/GPU/GPU_data.h"
 #include "../../Load/Node_load.h"
 #include "../../Load/Processing/Loader.h"
 #include "../../Load/Processing/Saver.h"
 
-#include "../../Specific/fct_terminal.h"
-#include "../../Interface/File/Directory.h"
+#include "../../Specific/Function/fct_terminal.h"
+#include "../../Specific/File/Directory.h"
 
 
 //Constructor / Destructor
@@ -24,13 +26,17 @@ Capture::Capture(Node_interface* node_interface){
 
   Node_engine* node_engine = node_interface->get_node_engine();
   Node_load* node_load = node_interface->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->configManager = node_engine->get_configManager();
   this->node_ope = node_engine->get_node_ope();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->loaderManager = node_load->get_loaderManager();
   this->scalaManager = new Scala(node_interface);
   this->veloManager = new Velodyne(node_interface);
+  this->gpuManager = new GPU_data();
+
+  this->point_size = 1;
 
   //---------------------------
   this->update_configuration();
@@ -46,7 +52,7 @@ void Capture::update_configuration(){
   this->ratio_frame = configManager->parse_json_i("interface", "ratio_frame");
   this->ratio_cpt = ratio_frame;
 
-  this->cloud_capture = nullptr;
+  this->collection_capture = nullptr;
   this->ID_capture = 0;
   this->capture_nb_point = 0;
   this->capture_nb_point_raw = 0;
@@ -116,12 +122,12 @@ void Capture::runtime(){
   }
 
   //Check if capture cloud is always here
-  if(sceneManager->get_is_list_empty() || cloud_capture == nullptr){
+  if(sceneManager->get_is_list_empty() || collection_capture == nullptr){
     this->stop_capture();
     return;
   }
 
-  //Check for new Subset
+  //Check for new Cloud
   if(lidar_model == "velodyne_vlp16"){
     this->runtime_velodyne();
   }
@@ -130,25 +136,25 @@ void Capture::runtime(){
   }
 
   //Regulate the number of subsets
-  this->control_nb_subset(cloud_capture);
+  this->control_nb_subset(collection_capture);
 
   //---------------------------
 }
 void Capture::runtime_velodyne(){
-  Subset* new_subset = nullptr;
+  Cloud* new_subset = nullptr;
   //---------------------------
 
   bool* new_capture = veloManager->get_is_newSubset();
 
   if(*new_capture){
-    //Pick new subset
-    new_subset = veloManager->get_subset_capture();
+    //Pick new cloud
+    new_subset = veloManager->get_obj_capture();
 
-    //Unset new Subset flag
+    //Unset new Cloud flag
     *new_capture = false;
     this->capture_nb_point_raw = new_subset->xyz.size();
 
-    //If new subset, make new subset stuff
+    //If new cloud, make new cloud stuff
     if(new_subset != nullptr){
       this->operation_new_subset(new_subset);
     }
@@ -157,21 +163,21 @@ void Capture::runtime_velodyne(){
   //---------------------------
 }
 void Capture::runtime_scala(){
-  Subset* new_subset = nullptr;
+  Cloud* new_subset = nullptr;
   //---------------------------
 
   bool* new_capture = scalaManager->get_is_newSubset();
   if(*new_capture){
-    //Pick new subset
-    new_subset = new Subset(*scalaManager->get_subset_capture());
+    //Pick new cloud
+    new_subset = new Cloud(*scalaManager->get_obj_capture());
 
-    //Unset new Subset flag
+    //Unset new Cloud flag
     *new_capture = false;
   }
 
-  //If new subset, include it in the capture cloud
+  //If new cloud, include it in the capture cloud
   if(new_subset != nullptr){
-    //Make new subset stuff
+    //Make new cloud stuff
     this->operation_new_subset(new_subset);
   }
 
@@ -200,9 +206,8 @@ void Capture::start_capture_scala(){
   scalaManager->start_watcher();
 
   //Create new empty cloud
-  loaderManager->load_cloud_empty();
-  cloud_capture = loaderManager->get_createdcloud();
-  cloud_capture->name = "start_capture_scala_" + to_string(ID_capture);
+  this->collection_capture = loaderManager->load_cloud_empty();
+  collection_capture->name = "start_capture_scala_" + to_string(ID_capture);
 
   this->is_capturing = true;
   ID_capture++;
@@ -212,50 +217,51 @@ void Capture::start_capture_scala(){
 }
 
 //Subfunctions
-void Capture::operation_new_subset(Subset* subset){
+void Capture::operation_new_subset(Cloud* cloud){
   //---------------------------
 
   //We take only one frame amounst several with ratio_frame
   int modulo = ratio_frame - ratio_cpt;
   ratio_cpt++;
 
-  //If ok insert subset into scene
+  //If ok insert cloud into scene
   if(modulo == 0){
     ratio_cpt = 1;
 
     //Do not record the first run
     if(is_first_run){
-      sceneManager->remove_subset_last(cloud_capture);
-      cloud_capture->nb_subset = 0;
+      collection_capture->obj_remove_last();
+      collection_capture->nb_obj = 0;
       is_first_run = false;
     }
 
     //Supress null points
     if(with_supress_null){
-      this->supress_nullpoints(subset);
-      this->capture_nb_point = subset->xyz.size();
-      if(subset->xyz.size() == 0) return;
+      this->supress_nullpoints(cloud);
+      this->capture_nb_point = cloud->xyz.size();
+      if(cloud->xyz.size() == 0) return;
     }
 
-    //Set new subset identifieurs
-    subset->name = "frame_" + to_string(cloud_capture->ID_subset);
-    subset->ID = cloud_capture->ID_subset;
-    cloud_capture->ID_subset++;
+    //Set new cloud identifieurs
+    cloud->name = "frame_" + to_string(collection_capture->ID_obj_last);
+    cloud->ID = collection_capture->ID_obj_last;
+    cloud->draw_point_size = point_size;
+    collection_capture->ID_obj_last++;
 
-    //Update subset data
-    sceneManager->update_subset_location(subset);
+    //Update cloud data
+    sceneManager->update_buffer_location(cloud);
 
-    //Insert the subset inside the capture cloud
-    sceneManager->add_new_subset(cloud_capture, subset);
+    //Insert the cloud inside the capture cloud
+    collection_capture->obj_add_new(cloud);
 
     //Compute online stuff
     Online* onlineManager = node_ope->get_onlineManager();
-    onlineManager->compute_onlineOpe(cloud_capture, subset->ID);
+    onlineManager->compute_onlineOpe(collection_capture, cloud->ID);
   }
 
   //---------------------------
 }
-void Capture::supress_nullpoints(Subset* subset){
+void Capture::supress_nullpoints(Cloud* cloud){
   vector<vec3> xyz;
   vector<vec4> RGB;
   vector<vec3> N;
@@ -263,60 +269,60 @@ void Capture::supress_nullpoints(Subset* subset){
   vector<float> ts;
   //---------------------------
 
-  for(int i=0; i<subset->xyz.size(); i++){
-    if(subset->xyz[i].x != 0 && subset->xyz[i].y != 0 && subset->xyz[i].z != 0){
+  for(int i=0; i<cloud->xyz.size(); i++){
+    if(cloud->xyz[i].x != 0 && cloud->xyz[i].y != 0 && cloud->xyz[i].z != 0){
       //Location
-      xyz.push_back(subset->xyz[i]);
+      xyz.push_back(cloud->xyz[i]);
 
       //Color
-      if(subset->RGB.size() != 0){
-        RGB.push_back(subset->RGB[i]);
+      if(cloud->rgb.size() != 0){
+        RGB.push_back(cloud->rgb[i]);
       }
 
       //Normal
-      if(subset->N.size() != 0){
-        N.push_back(subset->N[i]);
+      if(cloud->Nxyz.size() != 0){
+        N.push_back(cloud->Nxyz[i]);
       }
 
       //Timestamp
-      if(subset->ts.size() != 0){
-        ts.push_back(subset->ts[i]);
+      if(cloud->ts.size() != 0){
+        ts.push_back(cloud->ts[i]);
       }
 
       //Intensity
-      if(subset->I.size() != 0){
-        I.push_back(subset->I[i]);
+      if(cloud->I.size() != 0){
+        I.push_back(cloud->I[i]);
       }
     }
   }
 
-  subset->xyz = xyz;
+  cloud->xyz = xyz;
   if(RGB.size() != 0){
-    subset->RGB = RGB;
+    cloud->rgb = RGB;
   }
   if(N.size() != 0){
-    subset->N = N;
+    cloud->Nxyz = N;
   }
   if(I.size() != 0){
-    subset->I = I;
+    cloud->I = I;
   }
   if(ts.size() != 0){
-    subset->ts = ts;
+    cloud->ts = ts;
   }
 
   //---------------------------
 }
-void Capture::control_nb_subset(Cloud* cloud){
+void Capture::control_nb_subset(Collection* collection){
   //---------------------------
 
-  //If option, remove all other subset
+  //If option, remove all other cloud
   if(with_justOneFrame){
-    sceneManager->remove_subset_last(cloud);
+    collection->obj_remove_last();
   }
   //Remove old frame if option is activated
   else{
-    if(cloud->subset.size() > nb_subset_max){
-      sceneManager->remove_subset_last(cloud);
+    if(collection->list_obj.size() > nb_subset_max){
+      collection->obj_remove_last();
     }
   }
 
@@ -325,10 +331,9 @@ void Capture::control_nb_subset(Cloud* cloud){
 void Capture::create_empty_cloud(){
   //---------------------------
 
-  loaderManager->load_cloud_empty();
-  cloud_capture = loaderManager->get_createdcloud();
-  cloud_capture->ID_subset = 0;
-  cloud_capture->name = "Capture_" + to_string(ID_capture);
+  this->collection_capture = loaderManager->load_cloud_empty();
+  this->collection_capture->ID_obj_last = 0;
+  this->collection_capture->name = "Capture_" + to_string(ID_capture);
   this->ID_capture++;
 
   //---------------------------

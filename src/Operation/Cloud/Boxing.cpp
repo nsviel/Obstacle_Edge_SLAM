@@ -4,10 +4,11 @@
 #include "../Transformation/Attribut.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Glyph/Object.h"
-#include "../../Engine/Scene/Glyph/Glyphs.h"
-#include "../../Engine/Scene/Glyph/Cloud/Box.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Scene/Glyph/Object.h"
+#include "../../Scene/Glyph/Glyphs.h"
+#include "../../Scene/Glyph/Cloud/Box.h"
 
 
 //Constructor / destructor
@@ -15,10 +16,11 @@ Boxing::Boxing(Node_operation* node_ope){
   //---------------------------
 
   Node_engine* node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
-  this->objectManager = node_engine->get_objectManager();
-  this->glyphManager = node_engine->get_glyphManager();
+  this->sceneManager = node_scene->get_sceneManager();
+  this->objectManager = node_scene->get_objectManager();
+  this->glyphManager = node_scene->get_glyphManager();
   this->attribManager = node_ope->get_attribManager();
 
   this->highlightON = false;
@@ -27,17 +29,17 @@ Boxing::Boxing(Node_operation* node_ope){
 }
 Boxing::~Boxing(){}
 
-void Boxing::compute_box_MinMax(Cloud* cloud, vec3 min_perc, vec3 max_perc){
-  Subset* subset_init = sceneManager->get_subset_init(cloud, cloud->ID_selected);
+void Boxing::compute_box_MinMax(Collection* collection, vec3 min_perc, vec3 max_perc){
+  Cloud* list_obj_init = (Cloud*)collection->get_obj_selected_init();
   Box* boxObject = objectManager->get_object_box();
   Glyph* box = boxObject->get_glyph();
   //---------------------------
 
-  sceneManager->update_subset_MinMax(subset_init);
+  sceneManager->update_MinMax(list_obj_init);
 
   //Get Z extremums
-  vec3 min = subset_init->min;
-  vec3 max = subset_init->max;
+  vec3 min = list_obj_init->min;
+  vec3 max = list_obj_init->max;
   vec3 diff = max - min;
 
   //Compute min abs
@@ -70,28 +72,28 @@ void Boxing::compute_box_MinMax(Cloud* cloud, vec3 min_perc, vec3 max_perc){
 
   //---------------------------
 }
-void Boxing::compute_visibility(Cloud* cloud){
-  cloud->boxed = true;
+void Boxing::compute_visibility(Collection* collection){
+  collection->is_boxed = true;
   //---------------------------
 
-  for(int i=0; i<cloud->nb_subset; i++){
-    this->compute_visibility(cloud, i);
+  for(int i=0; i<collection->nb_obj; i++){
+    this->compute_visibility(collection, i);
   }
 
   //---------------------------
 }
-void Boxing::compute_visibility(Cloud* cloud, int ID){
+void Boxing::compute_visibility(Collection* collection, int ID){
   Box* boxObject = objectManager->get_object_box();
   Glyph* box = boxObject->get_glyph();
-  Subset* subset = sceneManager->get_subset(cloud, ID);
-  Subset* subset_init = sceneManager->get_subset_init(cloud, ID);
+  Cloud* cloud = (Cloud*)collection->get_obj(ID);
+  Cloud* list_obj_init = (Cloud*)collection->get_obj_init(ID);
   //---------------------------
 
-  subset->xyz = subset_init->xyz;
-  subset->I = subset_init->I;
-  subset->RGB = subset_init->RGB;
+  cloud->xyz = list_obj_init->xyz;
+  cloud->I = list_obj_init->I;
+  cloud->rgb = list_obj_init->rgb;
 
-  vector<vec3>& xyz = subset->xyz;
+  vector<vec3>& xyz = cloud->xyz;
   vector<int> idx;
   vec3 min = box->min;
   vec3 max = box->max;
@@ -104,55 +106,55 @@ void Boxing::compute_visibility(Cloud* cloud, int ID){
     }
   }
 
-  attribManager->make_supressPoints(subset, idx);
-  sceneManager->update_subset_location(subset);
+  attribManager->make_supressPoints(cloud, idx);
+  sceneManager->update_buffer_location(cloud);
 
   //---------------------------
 }
 
-void Boxing::supress_selected_point(Cloud* cloud){
+void Boxing::supress_selected_point(Collection* collection){
   //---------------------------
 
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
-    Subset* subset_init = sceneManager->get_subset_init(cloud, i);
-    vector<int>& idx = subset->selected;
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
+    Cloud* list_obj_init = (Cloud*)collection->get_obj_init(i);
+    vector<int>& idx = cloud->selected;
 
-    subset->xyz = subset_init->xyz;
-    subset->RGB = subset_init->RGB;
-    subset->I = subset_init->I;
+    cloud->xyz = list_obj_init->xyz;
+    cloud->rgb = list_obj_init->rgb;
+    cloud->I = list_obj_init->I;
 
     if(idx.size() != 0){
-      attribManager->make_supressPoints(subset, idx);
+      attribManager->make_supressPoints(cloud, idx);
       idx.clear();
     }
 
-    this->compute_visibility(cloud, i);
+    this->compute_visibility(collection, i);
   }
 
   //---------------------------
 }
 void Boxing::stop_boxing(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
   //---------------------------
 
   //By cloud
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(), i);
-    cloud->boxed = false;
-    for(int j=0; j<cloud->nb_subset; j++){
-      Subset* subset = sceneManager->get_subset(cloud, j);
-      Subset* subset_init = sceneManager->get_subset_init(cloud, j);
-      subset->xyz = subset_init->xyz;
-      subset->RGB = subset_init->RGB;
-      subset->I = subset_init->I;
-      sceneManager->update_subset_location(subset);
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(), i);
+    collection->is_boxed = false;
+    for(int j=0; j<collection->nb_obj; j++){
+      Cloud* cloud = (Cloud*)collection->get_obj(j);
+      Cloud* list_obj_init = (Cloud*)collection->get_obj_init(j);
+      cloud->xyz = list_obj_init->xyz;
+      cloud->rgb = list_obj_init->rgb;
+      cloud->I = list_obj_init->I;
+      sceneManager->update_buffer_location(cloud);
     }
   }
 
   Box* boxObject = objectManager->get_object_box();
   Glyph* box = boxObject->get_glyph();
-  box->visibility = false;
+  box->is_visible = false;
 
   //---------------------------
 }

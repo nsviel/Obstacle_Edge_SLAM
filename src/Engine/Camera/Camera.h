@@ -9,6 +9,7 @@ class Node_engine;
 class Dimension;
 class Configuration;
 class Viewport;
+class Shader;
 
 
 class Camera
@@ -52,8 +53,8 @@ public:
   inline void set_camForward(vec3 value){viewport->cam_F = value;}
   inline void set_angle_azimuth(float value){viewport->angle_azimuth = value;}
 
-  inline mat4 get_viewMat(){return compute_cam_view();}
-  inline mat4 get_projMat(){return compute_cam_proj();}
+  inline mat4 get_cam_view(){return compute_cam_view();}
+  inline mat4 get_cam_proj(){return compute_cam_proj();}
   inline mat4 get_mvpMatrix(){return compute_cam_mvp();}
   inline float* get_angle_azimuth(){return &viewport->angle_azimuth;}
   inline float get_angle_elevati(){return viewport->angle_elevation;}
@@ -72,8 +73,10 @@ private:
   Configuration* configManager;
   Dimension* dimManager;
   Viewport *viewportManager;
+  Shader* shaderManager;
 
   Viewport_obj* viewport;
+  vec2 mouse_pose_old;
   int nb_viewport;
 };
 

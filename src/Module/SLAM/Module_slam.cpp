@@ -7,8 +7,9 @@
 
 #include "../Node_module.h"
 
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Engine/Core/Configuration.h"
 #include "../../Engine/Node_engine.h"
+#include "../../Scene/Node_scene.h"
 #include "../../Operation/Node_operation.h"
 
 
@@ -62,16 +63,16 @@ void Module_slam::draw_online(){
 
   //---------------------------
 }
-void Module_slam::online(Cloud* cloud, int subset_ID){
+void Module_slam::online(Collection* collection, int subset_ID){
   //---------------------------
 
   if(with_slam){
     if(algo == 0){
-      Subset* subset = cloud->get_subset_byID(subset_ID);
-      cticpManager->algo(subset);
+      Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
+      cticpManager->algo(cloud);
     }
     else if(algo == 1){
-      slamManager->compute_slam(cloud, subset_ID);
+      slamManager->compute_slam(collection, subset_ID);
     }
   }
 

@@ -1,7 +1,7 @@
 #include "Fitting.h"
 
-#include "../../Specific/fct_math.h"
-#include "../../Specific/fct_transtypage.h"
+#include "../../Specific/Function/fct_math.h"
+#include "../../Specific/Function/fct_transtypage.h"
 
 
 //Constructor / Destructor
@@ -9,20 +9,20 @@ Fitting::Fitting(){}
 Fitting::~Fitting(){}
 
 //Sphere fitting
-void Fitting::Sphere_cloudToCenter_all(list<Cloud*>* list_cloud){
+void Fitting::Sphere_cloudToCenter_all(list<Collection*>* list_collection){
   //--------------------------
 
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
-    Subset* subset = cloud->subset_selected;
-    this->Sphere_cloudToCenter(subset);
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(),i);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    this->Sphere_cloudToCenter(cloud);
   }
 
   //--------------------------
 }
-void Fitting::Sphere_cloudToCenter(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<float>& dist = subset->R;
+void Fitting::Sphere_cloudToCenter(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<float>& dist = cloud->R;
   //---------------------------
 
   float dist_min = fct_min(dist);
@@ -43,7 +43,7 @@ void Fitting::Sphere_cloudToCenter(Subset* subset){
 
   //Determine the center of the sphere
   Center = vec3(Xm + r * (Xm / distm), Ym + r * (Ym / distm), Zm + r * (Zm / distm));
-  Center = Sphere_FindCenter(subset);
+  Center = Sphere_FindCenter(cloud);
 
   //Add a ptMark cloud to the selected point
   //int ID = glyphManager->loadGlyph("../media/engine/Marks/sphere_FARO.pts", Center, "point", false, 3);
@@ -51,12 +51,12 @@ void Fitting::Sphere_cloudToCenter(Subset* subset){
 
   //---------------------------
 }
-vec3 Fitting::Sphere_FindCenter(Subset* subset){
+vec3 Fitting::Sphere_FindCenter(Cloud* cloud){
   /* The return value is 'true' when the linear system of the algorithm
    is solvable, 'false' otherwise. If 'false' is returned, the sphere
    center and radius are set to zero values.*/
-   vector<vec3>& XYZ = subset->xyz;
-   vec3 COM = subset->COM;
+   vector<vec3>& XYZ = cloud->xyz;
+   vec3 COM = cloud->COM;
    vec3 Center;
    int numPoints = XYZ.size();
    //------------------------

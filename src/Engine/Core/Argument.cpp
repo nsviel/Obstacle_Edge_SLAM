@@ -1,7 +1,7 @@
 #include "Argument.h"
 
 #include "../Node_engine.h"
-#include "../Scene/Configuration.h"
+#include "../Core/Configuration.h"
 #include "../Camera/Camera.h"
 
 #include "../../Load/Node_load.h"
@@ -51,8 +51,8 @@ void Argument::process_arg(int argc, char* argv[]){
     }
     //Load at start
     else if(arg_vec[0] == "load" && argc == 3){
-      cameraManager->set_mode_view(1);
-      loadManager->load_cloud(arg_vec[1]);
+      //cameraManager->set_mode_view(1);
+      loadManager->load_collection(arg_vec[1]);
     }
     //Help
     else{

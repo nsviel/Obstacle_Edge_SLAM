@@ -3,7 +3,9 @@
 
 #include "../Node_engine.h"
 #include "../Core/Dimension.h"
-#include "../Scene/Configuration.h"
+#include "../Core/Configuration.h"
+#include "../Shader/Shader.h"
+#include "../Shader/Base/Shader_obj.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -15,8 +17,10 @@ Camera::Camera(Node_engine* node_engine){
   this->dimManager = node_engine->get_dimManager();
   this->configManager = node_engine->get_configManager();
   this->viewportManager = node_engine->get_viewportManager();
+  this->shaderManager = node_engine->get_shaderManager();
 
   this->viewport = viewportManager->get_viewport_main();
+  this->mouse_pose_old = vec2(0.0f);
 
   //---------------------------
 }
@@ -24,22 +28,21 @@ Camera::~Camera(){}
 
 //MVP Matrix
 mat4 Camera::compute_cam_view(){
-  mat4 viewMat;
+  mat4 cam_view;
   //---------------------------
 
   if(viewport->cam_pose){
-    viewMat = viewport->cam_pose_mat;
+    cam_view = viewport->cam_pose_mat;
   }else if(viewport->mode == "default"){
-    viewMat = compute_cam_default();
+    cam_view = compute_cam_default();
   }else if(viewport->mode == "arcball"){
-    viewMat = compute_cam_arcball();
+    cam_view = compute_cam_arcball();
   }
 
   //---------------------------
-  return viewMat;
+  return cam_view;
 }
 mat4 Camera::compute_cam_default(){
-  mat4 viewMat;
   //---------------------------
 
   float azimuth = viewport->angle_azimuth;
@@ -57,13 +60,13 @@ mat4 Camera::compute_cam_default(){
   vec3 cam_target = viewport->cam_P + viewport->cam_F;
 
   //Compute view matrix
-  viewMat = lookAt(viewport->cam_P, cam_target, viewport->cam_U);
+  mat4 cam_view = lookAt(viewport->cam_P, cam_target, viewport->cam_U);
 
   //---------------------------
-  return viewMat;
+  return cam_view;
 }
 mat4 Camera::compute_cam_arcball(){
-  mat4 viewMat;
+  mat4 cam_view;
   //---------------------------
 
   //Compute camera
@@ -71,39 +74,40 @@ mat4 Camera::compute_cam_arcball(){
   viewport->cam_U = normalize(cross(viewport->cam_R, viewport->cam_F));
 
   //Compute view matrix
-  viewMat = lookAt(viewport->cam_P, viewport->cam_COM, viewport->cam_U);
+  cam_view = lookAt(viewport->cam_P, viewport->cam_COM, viewport->cam_U);
 
   //---------------------------
-  return viewMat;
+  return cam_view;
 }
 mat4 Camera::compute_cam_proj(){
-  mat4 projMat;
+  mat4 cam_proj;
   //---------------------------
 
   //Compute projection matrix
   if(viewport->projection == "perspective"){
-    vec2 glDim = dimManager->get_gl_dim();
+    vec2 win_dim = dimManager->get_gl_dim();
     float znear = viewport->clip_near;
     float zfar = viewport->clip_far;
     float fov = radians(viewport->fov);
-    projMat = perspective(fov, glDim.x / glDim.y, znear, zfar);
+    float ratio = win_dim.x / win_dim.y;
+    cam_proj = perspective(fov, ratio, znear, zfar);
   }
   else if(viewport->projection == "orthographic"){
     float zoom = viewport->zoom;
-    projMat = ortho(-5.f - zoom, 5.f + zoom, -5.f - zoom, 5.f + zoom, -1000.0f, 1000.0f);
+    cam_proj = ortho(-5.f - zoom, 5.f + zoom, -5.f - zoom, 5.f + zoom, -1000.0f, 1000.0f);
   }
 
   //---------------------------
-  return projMat;
+  return cam_proj;
 }
 mat4 Camera::compute_cam_mvp(){
   //---------------------------
 
-  //mat4 viewMat = compute_cam_view();
-  mat4 viewMat = compute_cam_view();
-  mat4 projMat = compute_cam_proj();
+  //mat4 cam_view = compute_cam_view();
+  mat4 cam_view = compute_cam_view();
+  mat4 cam_proj = compute_cam_proj();
 
-  mat4 mvpMatrix = projMat * viewMat;
+  mat4 mvpMatrix = cam_proj * cam_view;
 
   //---------------------------
   return mvpMatrix;
@@ -181,20 +185,25 @@ void Camera::input_cam_mouse_default(){
 
   //Cursor movement
   vec2 mouse_pose = dimManager->get_mouse_pose();
-  dimManager->set_mouse_pose(dimManager->get_gl_middle());
 
-  // Compute new orientation
-  vec2 gl_mid = dimManager->get_gl_middle();
-  azimuth += viewport->speed_mouse * float(gl_mid.x - mouse_pose.x);
-  elevation += viewport->speed_mouse * float(gl_mid.y - mouse_pose.y);
+  if(mouse_pose != mouse_pose_old){
+    dimManager->set_mouse_pose(dimManager->get_gl_middle());
 
-  //Limites of camera rotation
-  if(elevation > M_PI/2) elevation = M_PI/2;
-  if(elevation < -M_PI/2) elevation = -M_PI/2;
-  if(azimuth > M_PI*2) azimuth = 0;
-  if(azimuth < -M_PI*2) azimuth = 0;
+    // Compute new orientation
+    vec2 gl_mid = dimManager->get_gl_middle();
+    azimuth += viewport->speed_mouse * float(gl_mid.x - mouse_pose.x);
+    elevation += viewport->speed_mouse * float(gl_mid.y - mouse_pose.y);
 
-  glfwSetInputMode(dimManager->get_window(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    //Limites of camera rotation
+    if(elevation > M_PI/2) elevation = M_PI/2;
+    if(elevation < -M_PI/2) elevation = -M_PI/2;
+    if(azimuth > M_PI*2) azimuth = 0;
+    if(azimuth < -M_PI*2) azimuth = 0;
+
+    //Setup mouse
+    glfwSetInputMode(dimManager->get_window(), GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    mouse_pose_old = mouse_pose;
+  }
 
   //---------------------------
 }

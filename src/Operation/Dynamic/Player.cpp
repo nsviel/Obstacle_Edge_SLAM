@@ -4,15 +4,16 @@
 
 #include "../Node_operation.h"
 
-#include "../../Specific/fct_timer.h"
-#include "../../Interface/File/Directory.h"
-#include "../../Interface/File/Zenity.h"
-#include "../../Interface/File/Path.h"
+#include "../../Specific/Function/fct_timer.h"
+#include "../../Specific/File/Directory.h"
+#include "../../Specific/File/Zenity.h"
+#include "../../Specific/File/Path.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Glyph/Object.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Scene/Glyph/Object.h"
+#include "../../Engine/Core/Configuration.h"
 
 #include "../../Load/Node_load.h"
 #include "../../Load/Processing/Saver.h"
@@ -25,11 +26,12 @@ Player::Player(Node_operation* node_ope){
 
   Node_engine* node_engine = node_ope->get_node_engine();
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->configManager = node_engine->get_configManager();
   this->onlineManager = node_ope->get_onlineManager();
-  this->objectManager = node_engine->get_objectManager();;
-  this->sceneManager = node_engine->get_sceneManager();
+  this->objectManager = node_scene->get_objectManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->saverManager = node_load->get_saverManager();
   this->loaderManager = node_load->get_loaderManager();
   this->flyManager = node_ope->get_flyManager();
@@ -55,11 +57,11 @@ void Player::update_configuration(){
 }
 void Player::runtime(){
   //Continually running, wait for flag to proceed
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
-  if(player_time_flag && cloud != nullptr){
-    this->select_bySubsetID(cloud, cloud->ID_selected + 1);
+  if(player_time_flag && collection != nullptr){
+    this->select_byObjectID(collection, collection->ID_obj_selected + 1);
 
     player_time_flag = false;
   }
@@ -68,77 +70,87 @@ void Player::runtime(){
 }
 
 //Selection functions
-void Player::select_bySubsetID(Cloud* cloud, int ID_subset){
-  if(cloud == nullptr) return;
+void Player::select_byObjectID(Collection* collection, int ID_obj){
+  if(collection == nullptr) return;
   //---------------------------
 
-  //If on the fly option, load subset
-  flyManager->compute_onthefly(cloud, ID_subset);
+  //If on the fly option, load cloud
+  flyManager->compute_onthefly(collection, ID_obj);
 
-  //If in side range, make operation on subset
-  if(compute_range_limit(cloud, ID_subset)){
-    onlineManager->compute_onlineOpe(cloud, ID_subset);
+  //If in side range, make operation on cloud
+  if(compute_range_limit(collection, ID_obj)){
+    onlineManager->compute_onlineOpe(collection, ID_obj);
   }
 
   //Update glyphs
-  Subset* subset = sceneManager->get_subset_byID(cloud, ID_subset);
-  objectManager->update_glyph_subset(subset);
+  Object_* object = collection->get_obj_byID(ID_obj);
+  if(object != nullptr){
+    collection->ID_obj_selected = ID_obj;
+  }else if(ID_obj >= collection->list_obj.size()){
+    collection->ID_obj_selected = collection->list_obj.size() - 1;
+  }
 
   //---------------------------
+
+
+
 }
 void Player::compute_wheel_selection(string direction){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //----------------------------
 
   //Wheel - rolling stone
-  if(cloud != nullptr){
-    int subset_selected_ID = cloud->ID_selected;
+  if(collection != nullptr){
+    int ID_obj = collection->ID_obj_selected;
 
     if(direction == "up"){
-      subset_selected_ID++;
-    }
-    else if(direction =="down"){
-      subset_selected_ID--;
-    }
+      ID_obj++;
 
-    this->select_bySubsetID(cloud, subset_selected_ID);
+      this->select_byObjectID(collection, ID_obj);
+    }
+    else if(direction =="down" && collection->is_onthefly == false){
+      ID_obj--;
+
+      if(ID_obj < collection->get_obj(0)->ID) ID_obj = collection->get_obj(0)->ID;
+      this->select_byObjectID(collection, ID_obj);
+    }
   }
 
   //----------------------------
 }
-bool Player::compute_range_limit(Cloud* cloud, int& ID_subset){
-  Subset* subset_first = sceneManager->get_subset(cloud, 0);
-  Subset* subset_last = sceneManager->get_subset(cloud, cloud->nb_subset-1);
+bool Player::compute_range_limit(Collection* collection, int& ID_obj){
+  Object_* object_first = collection->get_obj(0);
+  Object_* object_last = collection->get_obj(collection->list_obj.size()-1);
   //---------------------------
 
-  //Check if subset exists
-  Subset* subset = sceneManager->get_subset(cloud, ID_subset);
-  if(subset == nullptr){
+  //Check if cloud exists
+  Object_* object = collection->get_obj_byID(ID_obj);
+  if(object == nullptr){
     return false;
   }
 
-  //If frame desired ID is superior to the number of subset restart it
+  //If frame desired ID is superior to the number of cloud restart it
   if(player_returnToZero){
-    if(ID_subset > subset_last->ID){
-      ID_subset = subset_first->ID;
+    if(ID_obj > object_last->ID){
+      ID_obj = object_first->ID;
     }
-    if(ID_subset < subset_first->ID){
-      ID_subset = subset_last->ID;
+    if(ID_obj < object_first->ID){
+      ID_obj = object_last->ID;
     }
   }
   else{
-    if(ID_subset > subset_last->ID){
-      ID_subset = subset_last->ID;
+    if(ID_obj > object_last->ID){
+      ID_obj = object_last->ID;
       return false;
     }
-    if(ID_subset < subset_first->ID){
-      ID_subset = subset_first->ID;
+    if(ID_obj < object_first->ID){
+      ID_obj = object_first->ID;
       return false;
     }
   }
 
-  //Set visibility parameter for each cloud subset
-  cloud->ID_selected = ID_subset;
+  //Set visibility parameter for each collection cloud
+  collection->ID_obj_selected = ID_obj;
 
   //---------------------------
   return true;
@@ -189,23 +201,23 @@ void Player::player_start_or_pause(){
   //---------------------------
 }
 void Player::player_stop(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   this->player_isrunning = false;
   this->player_ispaused = false;
   //---------------------------
 
   timerManager->stop();
-  this->select_bySubsetID(cloud, 0);
+  this->select_byObjectID(collection, 0);
 
   //---------------------------
 }
-void Player::player_save(Cloud* cloud){
+void Player::player_save(Collection* collection){
   //---------------------------
 
-  //Save each subset
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
-    saverManager->save_subset(subset, "ply", player_saveas);
+  //Save each cloud
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
+    saverManager->save_subset(cloud, "ply", player_saveas);
   }
 
   //---------------------------

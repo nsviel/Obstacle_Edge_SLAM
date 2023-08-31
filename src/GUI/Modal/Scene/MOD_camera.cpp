@@ -1,9 +1,10 @@
 #include "MOD_camera.h"
 
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Configuration.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Engine/Core/Configuration.h"
 #include "../../../Engine/Camera/Camera.h"
 
 #include <fstream>
@@ -106,7 +107,7 @@ void MOD_camera::cam_info(){
   ImGui::Text("Model-View matrix");
   ImGui::SameLine();
   if(ImGui::Button("Print")){
-    sayMat4(cam_pos);
+    say(cam_pos);
   }
   ImGui::Columns(4, "Proj");
   for(int i=0;i<4;i++){

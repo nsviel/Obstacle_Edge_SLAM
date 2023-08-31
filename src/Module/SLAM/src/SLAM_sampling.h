@@ -1,7 +1,7 @@
 #ifndef SLAM_SAMPLING_H
 #define SLAM_SAMPLING_H
 
-#include "../../../common.h"
+#include "../Base/common.h"
 
 
 class SLAM_sampling
@@ -13,8 +13,8 @@ public:
 
 public:
   //Sampling functions
-  vector<vec3> sub_sampling_subset(Subset* subset, float voxel_size);
-  void grid_sampling_subset(Subset* subset);
+  vector<vec3> sub_sampling_subset(Cloud* cloud, float voxel_size);
+  void grid_sampling_subset(Cloud* cloud);
 
   inline double* get_min_root_distance(){return &min_root_distance;}
   inline double* get_max_root_distance(){return &max_root_distance;}

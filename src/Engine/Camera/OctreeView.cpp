@@ -1,6 +1,6 @@
 #include "OctreeView.h"
 
-#include "../../Specific/fct_math.h"
+#include "../../Specific/Function/fct_math.h"
 
 
 //Constructor / Destructor
@@ -13,7 +13,7 @@ OctreeView::OctreeView(){
 OctreeView::~OctreeView(){}
 
 //Main functions
-void OctreeView::construct_octree(Subset* subset){
+void OctreeView::construct_octree(Cloud* cloud){
   //---------------------------
 
   struct Cube{
@@ -24,8 +24,8 @@ void OctreeView::construct_octree(Subset* subset){
 
   Cube cube;
 
-  vec3 min = fct_min_vec3(subset->xyz);
-  vec3 max = fct_max_vec3(subset->xyz);
+  vec3 min = fct_min_vec3(cloud->xyz);
+  vec3 max = fct_max_vec3(cloud->xyz);
 
 
 

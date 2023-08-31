@@ -1,7 +1,7 @@
 #include "Plotting.h"
 
 #include "../../Specific/color.h"
-#include "../../Specific/fct_math.h"
+#include "../../Specific/Function/fct_math.h"
 
 
 //Constructor / Destructor
@@ -954,8 +954,8 @@ void Plotting::plot_2Dmap(MatrixXf HM, vector<float>& R_map, vector<float>& cosI
 
   //---------------------------
 }
-void Plotting::plot_PointCloud(Cloud* cloud){
-  Subset* subset = *next(cloud->subset.begin(), 0);
+void Plotting::plot_PointCloud(Collection* collection){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), 0);
   Gnuplot gp;
   //---------------------------
 
@@ -972,8 +972,8 @@ void Plotting::plot_PointCloud(Cloud* cloud){
   gp << "set yrange [0:1]\n";
   gp << "set zrange [0:1]\n";
 
-  vector<float>& I = subset->I;
-  vector<vec3>& XYZ = subset->xyz;
+  vector<float>& I = cloud->I;
+  vector<vec3>& XYZ = cloud->xyz;
   vector<float> X, Y, Z;
   for(int i=0; i<XYZ.size(); i++){
     X.push_back(XYZ[i].x);

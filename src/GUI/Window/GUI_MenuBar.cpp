@@ -12,19 +12,20 @@
 #include "../../Load/Processing/Pather.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Data/struct_misc.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Scene/Data/Graph.h"
+#include "../../Module/Registration/struct_misc.h"
 #include "../../Engine/OpenGL/CoreGLengine.h"
-#include "../../Engine/OpenGL/Textures.h"
 
 #include "../../Operation/Node_operation.h"
 #include "../../Operation/Cloud/Extraction.h"
 #include "../../Operation/Transformation/Pose.h"
 
-#include "../../Specific/fct_math.h"
+#include "../../Specific/Function/fct_math.h"
 
 #include "imgui/imgui.h"
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 #include <thread>
 #include <sys/sysinfo.h>
@@ -41,17 +42,18 @@ GUI_menuBar::GUI_menuBar(Node_gui* node){
   Node_module* node_module = node_gui->get_node_module();
   Node_operation* node_ope = node_gui->get_node_ope();
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->gui_init = node_gui->get_gui_initialization();
   this->optionManager = node_gui->get_gui_option();
   this->gui_window = node_gui->get_gui_window();
   this->gui_leftPanel = node_gui->get_gui_leftPanel();
   this->gui_player = node_gui->get_gui_player();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->extractionManager = node_ope->get_extractionManager();
   this->pathManager = node_load->get_patherManager();
   this->glManager = node_engine->get_glManager();
-  this->texManager = new Textures();
+  this->graphManager = node_scene->get_graphManager();
 
   //---------------------------
 }
@@ -74,7 +76,7 @@ void GUI_menuBar::design_MenuBar(){
 
 //Subfunctions
 void GUI_menuBar::MenuBar_menu(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //-------------------------
 
   this->MenuBar_menu_file();
@@ -82,7 +84,7 @@ void GUI_menuBar::MenuBar_menu(){
   this->MenuBar_menu_save();
 
   //Option menu
-  if(ImGui::BeginMenu(ICON_FA_COG " Option")){
+  if(ImGui::BeginMenu(ICON_FA_COG, " Option")){
     optionManager->design_Options();
     ImGui::EndMenu();
   }
@@ -102,24 +104,24 @@ void GUI_menuBar::MenuBar_menu(){
   //-------------------------
 }
 void GUI_menuBar::MenuBar_menu_file(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   //File menu
   if(ImGui::BeginMenu("File")){
-    if(ImGui::MenuItem("Remove cloud", "Suppr")){
-      sceneManager->remove_cloud(cloud);
+    if(ImGui::MenuItem("Remove collection", "Suppr")){
+      sceneManager->remove_collection(collection);
     }
     if(ImGui::MenuItem("Remove all", "Fin")){
-      sceneManager->remove_cloud_all();
+      sceneManager->remove_collection_all();
     }
-    if(ImGui::MenuItem("Next cloud","tab")){
-      sceneManager->selection_setNext();
+    if(ImGui::MenuItem("Next collection","tab")){
+      graphManager->select_next_collection();
     }
-    if(ImGui::MenuItem("Center cloud", "c")){
+    if(ImGui::MenuItem("Center collection", "c")){
       if(!sceneManager->get_is_list_empty()){
         Pose poseManager;
-        poseManager.make_centering(cloud);
+        poseManager.make_centering(collection);
         //Module* moduleManager = engineManager->get_moduleManager();
         //moduleManager->module_update();
       }
@@ -139,15 +141,15 @@ void GUI_menuBar::MenuBar_menu_file(){
   //---------------------------
 }
 void GUI_menuBar::MenuBar_menu_load(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //-------------------------
 
-  if(ImGui::BeginMenu(ICON_FA_FILE " Open")){
+  if(ImGui::BeginMenu(ICON_FA_FILE, "Open")){
     if (ImGui::MenuItem("Open")){
       pathManager->loading_cloud();
     }
     if (ImGui::MenuItem("Open frames")){
-      pathManager->loading_frames();
+      pathManager->loading_frame();
     }
     if (ImGui::MenuItem("Open on-the-fly")){
       pathManager->loading_onthefly();
@@ -162,18 +164,18 @@ void GUI_menuBar::MenuBar_menu_load(){
   //-------------------------
 }
 void GUI_menuBar::MenuBar_menu_save(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //-------------------------
 
-  if(ImGui::BeginMenu(ICON_FA_BOOK " Save")){
+  if(ImGui::BeginMenu(ICON_FA_BOOK, "Save")){
     if(ImGui::MenuItem("Save")){
-      pathManager->saving_cloud_same(cloud);
+      pathManager->saving_cloud_same(collection);
     }
-    if(ImGui::MenuItem("Save cloud")){
-      pathManager->saving_cloud(cloud);
+    if(ImGui::MenuItem("Save collection")){
+      pathManager->saving_cloud(collection);
     }
     if(ImGui::MenuItem("Save frame")){
-      pathManager->saving_cloud_frame(cloud);
+      pathManager->saving_cloud_frame(collection);
     }
     ImGui::Separator();
     if(ImGui::MenuItem("Options")){
@@ -197,14 +199,14 @@ void GUI_menuBar::MenuBar_icons(){
   float iconSize = 0;
   Texture* texture;
 
-  //Cloud info
+  //Collection info
   if(ImGui::Button(ICON_FA_COMMENT, ImVec2(iconSize,iconSize))){
     if(!sceneManager->get_is_list_empty()){
       modal_tab.show_modifyFileInfo = !modal_tab.show_modifyFileInfo;
     }
   }
   if(ImGui::IsItemHovered()){
-    ImGui::SetTooltip("Cloud info");
+    ImGui::SetTooltip("Collection info");
   }
 
   //Heatmap
@@ -231,7 +233,7 @@ void GUI_menuBar::MenuBar_icons(){
     modal_tab.show_boxing = !modal_tab.show_boxing;
   }
   if(ImGui::IsItemHovered()){
-    ImGui::SetTooltip("Cloud boxing");
+    ImGui::SetTooltip("Collection boxing");
   }
 
   //---------------------------
@@ -251,7 +253,7 @@ void GUI_menuBar::MenuBar_subsetSelection(){
   //-------------------------
 }
 void GUI_menuBar::MenuBar_Operations(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   //Functions
@@ -275,6 +277,9 @@ void GUI_menuBar::MenuBar_Operations(){
   }
   if(ImGui::Button("Transformation", ImVec2(150,0))){
     modal_tab.show_transformation = !modal_tab.show_transformation;
+  }
+  if(ImGui::Button("Texture", ImVec2(150,0))){
+    modal_tab.show_texture = !modal_tab.show_texture;
   }
 
   //---------------------------

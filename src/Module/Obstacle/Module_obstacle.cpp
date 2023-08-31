@@ -9,7 +9,8 @@
 #include "../Node_module.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Engine/Core/Configuration.h"
 #include "../../Operation/Node_operation.h"
 #include "../../Interface/Node_interface.h"
 
@@ -61,6 +62,7 @@ void Module_obstacle::runtime(){
 void Module_obstacle::reset(){
   //---------------------------
 
+  obstacleManager->reset();
 
   //---------------------------
 }
@@ -76,4 +78,7 @@ void Module_obstacle::draw_online(){
 
 
   //---------------------------
+}
+void Module_obstacle::online(Collection* collection, int subset_ID){
+  obstacleManager->online(collection, subset_ID);
 }

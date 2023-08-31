@@ -24,7 +24,7 @@ public:
   inline vec2 get_bp_dim(){return dim_bp;}
 
 private:
-  Configuration* node_config;
+  Configuration* node_controlnfig;
   Dimension* dimManager;
 
   vec2 dim_bp;

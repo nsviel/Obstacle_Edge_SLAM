@@ -1,22 +1,23 @@
 #include "SLAM.h"
 
-#include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Engine/Scene/Configuration.h"
-#include "../../../Specific/fct_transtypage.h"
-#include "../../../Specific/fct_math.h"
-#include "../../../Specific/fct_chrono.h"
-
 #include "SLAM_sampling.h"
 #include "SLAM_init.h"
 #include "SLAM_assessment.h"
 #include "SLAM_map.h"
 #include "SLAM_parameter.h"
 #include "SLAM_transform.h"
-#include "SLAM_glyph.h"
 
+#include "../Glyph/SLAM_glyph.h"
 #include "../optim/SLAM_normal.h"
 #include "../optim/SLAM_optim.h"
+
+#include "../../../Engine/Node_engine.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
+#include "../../../Engine/Core/Configuration.h"
+#include "../../../Specific/Function/fct_transtypage.h"
+#include "../../../Specific/Function/fct_math.h"
+#include "../../../Specific/Function/fct_chrono.h"
 
 
 //Constructor / Destructor
@@ -24,8 +25,10 @@ SLAM::SLAM(Node_engine* node){
   this->node_engine = node;
   //---------------------------
 
+  Node_scene* node_scene = node_engine->get_node_scene();
+
   this->configManager = node_engine->get_configManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
 
   this->slam_sampling = new SLAM_sampling();
   this->slam_map = new SLAM_map(this);
@@ -52,20 +55,20 @@ void SLAM::update_configuration(){
 
   //---------------------------
 }
-bool SLAM::compute_slam(Cloud* cloud, int subset_ID){
-  Subset* subset = sceneManager->get_subset_byID(cloud, subset_ID);
+bool SLAM::compute_slam(Collection* collection, int subset_ID){
+  Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
   auto t1 = start_chrono();
-  if(check_condition(cloud, subset_ID) == false) return false;
+  if(check_condition(collection, subset_ID) == false) return false;
   //---------------------------
 
-  slam_init->compute_initialization(cloud, subset_ID);
-  slam_transf->compute_preprocessing(cloud, subset_ID);
-  slam_optim->compute_optimization(cloud, subset_ID);
+  slam_init->compute_initialization(collection, subset_ID);
+  slam_transf->compute_preprocessing(collection, subset_ID);
+  slam_optim->compute_optimization(collection, subset_ID);
 
   //---------------------------
   time_slam = stop_chrono(t1);
-  bool success = slam_assess->compute_assessment(cloud, subset_ID, time_slam);
-  this->compute_finalization(cloud, subset_ID, success, time_slam);
+  bool success = slam_assess->compute_assessment(collection, subset_ID, time_slam);
+  this->compute_finalization(collection, subset_ID, success, time_slam);
   return success;
 }
 void SLAM::reset_slam(){
@@ -78,57 +81,57 @@ void SLAM::reset_slam(){
 }
 
 //Sub-functions
-void SLAM::compute_finalization(Cloud* cloud, int subset_ID, bool success, float duration){
-  Subset* subset = sceneManager->get_subset_byID(cloud, subset_ID);
-  Frame* frame = sceneManager->get_frame_byID(cloud, subset_ID);
+void SLAM::compute_finalization(Collection* collection, int subset_ID, bool success, float duration){
+  Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
+  Frame* frame = collection->get_frame_byID(subset_ID);
   //---------------------------
 
   //Apply transformation
   if(success){
-    slam_transf->transform_subset(subset);
-    slam_map->update_map(cloud, subset_ID);
-    slam_glyph->update_glyph(cloud, subset);
+    slam_transf->transform_subset(cloud);
+    slam_map->update_map(collection, subset_ID);
+    slam_glyph->update_glyph(collection, cloud);
   //Else reset slam map
   }else{
     frame->reset();
     slam_map->reset_map();
-    this->reset_visibility(cloud, subset_ID);
+    this->reset_visibility(collection, subset_ID);
   }
 
   //Compute SLAM statistiques
-  slam_assess->compute_statistics(cloud, subset_ID, duration);
+  slam_assess->compute_statistics(collection, subset_ID, duration);
   this->print_result();
 
   //---------------------------
 }
-bool SLAM::check_condition(Cloud* cloud, int subset_ID){
-  Subset* subset = sceneManager->get_subset_byID(cloud, subset_ID);
-  Frame* frame = sceneManager->get_frame_byID(cloud, subset_ID);
+bool SLAM::check_condition(Collection* collection, int subset_ID){
+  Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
+  Frame* frame = collection->get_frame_byID(subset_ID);
   slamap* local_map = slam_map->get_local_map();
   //---------------------------
 
   //Cloud existence & consistency
-  if(cloud == nullptr){
-    console.AddLog("error" ,"[SLAM] No cloud");
+  if(collection == nullptr){
+    console.AddLog("error" ,"[SLAM] No collection");
     return false;
   }
-  if(cloud->ID != local_map->linked_cloud_ID && local_map->linked_cloud_ID != -1){
+  if(collection->ID_col_perma != local_map->linked_col_ID && local_map->linked_col_ID != -1){
     this->reset_slam();
   }
 
   //Subset number & timestamp
-  if(subset_ID >= 2 && cloud->subset.size() < 2){
+  if(subset_ID >= 2 && collection->list_obj.size() < 2){
     console.AddLog("error" ,"[SLAM] No enough subsets");
     return false;
   }
-  if(subset->has_timestamp == false){
+  if(cloud->has_timestamp == false){
     console.AddLog("error" ,"[SLAM] No timestamp");
     return false;
   }
 
   //Frame already slam computed
   if(frame->is_slam_made == true){
-    slam_glyph->update_glyph(cloud, subset);
+    slam_glyph->update_glyph(collection, cloud);
     return false;
   }
 
@@ -144,25 +147,25 @@ bool SLAM::check_condition(Cloud* cloud, int subset_ID){
   }
 
   //Check lidar model
-  if(lidar_model != cloud->lidar_model){
-    slam_param->make_config(cloud->lidar_model);
-    this->lidar_model = cloud->lidar_model;
+  if(lidar_model != collection->lidar_model){
+    slam_param->make_config(collection->lidar_model);
+    this->lidar_model = collection->lidar_model;
   }
 
   //---------------------------
   return true;
 }
-void SLAM::reset_visibility(Cloud* cloud, int subset_ID){
+void SLAM::reset_visibility(Collection* collection, int subset_ID){
   //---------------------------
 
-  //Set visibility just for last subset
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
+  //Set visibility just for last cloud
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
 
-    if(subset->ID == subset_ID){
-      subset->visibility = true;
+    if(cloud->ID == subset_ID){
+      cloud->is_visible = true;
     }else{
-      subset->visibility = false;
+      cloud->is_visible = false;
     }
   }
 

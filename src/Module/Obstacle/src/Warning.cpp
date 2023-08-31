@@ -19,18 +19,18 @@ Warning::Warning(Module_obstacle* module){
 }
 Warning::~Warning(){}
 
-void Warning::send_warning(Subset* subset){
+void Warning::send_warning(Cloud* cloud){
   //PAHO* mqtt_sncf = mqttManager->get_mqtt_sncf();
   //---------------------------
 
-  //string warning = build_jsonFile(subset);
+  //string warning = build_jsonFile(cloud);
   //mqtt_sncf->paho_connection();
   //mqtt_sncf->paho_publish(warning);
 
   //---------------------------
 }
-string Warning::build_jsonFile(Subset* subset){
-  Data_pred* obstacle = &subset->detection;
+string Warning::build_jsonFile(Cloud* cloud){
+  /*Data_pred* obstacle = &cloud->detection;
   //---------------------------
 
   //Begin
@@ -58,5 +58,6 @@ string Warning::build_jsonFile(Subset* subset){
   warning += "]}";
 
   //---------------------------
-  return warning;
+  return warning;*/
+  return "";
 }

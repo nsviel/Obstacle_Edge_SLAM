@@ -7,11 +7,10 @@
 #include "Processing/Extractor.h"
 
 #include "../Engine/Node_engine.h"
+#include "../Specific/Base/Node.h"
 
-#include "../common.h"
 
-
-class Node_load
+class Node_load : public Node
 {
 public:
   //Constructor / Destructor
@@ -25,7 +24,6 @@ public:
   inline Pather* get_patherManager(){return patherManager;}
   inline Saver* get_saverManager(){return saverManager;}
   inline Loader* get_loaderManager(){return loaderManager;}
-  inline Extractor* get_extractManager(){return extractManager;}
 
 private:
   Node_engine* node_engine;

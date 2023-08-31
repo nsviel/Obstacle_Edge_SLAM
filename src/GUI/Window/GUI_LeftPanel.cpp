@@ -7,6 +7,7 @@
 #include "../Dynamic/GUI_Online.h"
 
 #include "../../Engine/Node_engine.h"
+#include "../../Scene/Node_scene.h"
 #include "../../Engine/Core/Dimension.h"
 
 #include "../../Module/Node_module.h"
@@ -85,7 +86,7 @@ void GUI_leftPanel::panel_top(){
     ImGui::Begin("LeftPanel##topInner", NULL, window_flags);{
 
       //File management
-      gui_fileManager->fileManager();
+      gui_fileManager->data_tree();
 
     }
     ImGui::PopStyleVar();

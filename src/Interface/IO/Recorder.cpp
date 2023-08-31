@@ -1,13 +1,15 @@
 #include "Recorder.h"
 
 #include "../Node_interface.h"
-#include "../File/Directory.h"
-#include "../File/Zenity.h"
 
+#include "../../Specific/File/Directory.h"
+#include "../../Specific/File/Zenity.h"
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/OpenGL/Renderer.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Engine/Rendering/Renderer.h"
+#include "../../Engine/GPU/GPU_screenshot.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Engine/Core/Configuration.h"
 #include "../../Load/Node_load.h"
 #include "../../Load/Processing/Saver.h"
 
@@ -20,12 +22,14 @@ Recorder::Recorder(Node_interface* node){
 
   Node_engine* node_engine = node->get_node_engine();
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->node_interface = node_engine->get_node_interface();
   this->configManager = node_engine->get_configManager();
   this->renderManager = node_engine->get_renderManager();
   this->saverManager = node_load->get_saverManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
+  this->screenshotManager = node_engine->get_gpu_screenshot();
 
   //---------------------------
   this->update_configuration();
@@ -52,12 +56,12 @@ void Recorder::update_configuration(){
 
   //---------------------------
 }
-void Recorder::compute_online(Cloud* cloud, int ID_subset){
+void Recorder::compute_online(Collection* collection, int ID_object){
   //---------------------------
 
-  //Save subset frame
+  //Save cloud frame
   if(with_save_frame){
-    this->save_frame(cloud, ID_subset);
+    this->save_frame(collection, ID_object);
   }
 
   //Save rendered image
@@ -106,8 +110,8 @@ void Recorder::save_image_unique(){
 
   //Put screenshot flag on
   string path = path_image + "image";
-  *renderManager->get_save_path() = path;
-  *renderManager->get_is_screenshot() = true;
+  *screenshotManager->get_save_path() = path;
+  *screenshotManager->get_is_screenshot() = true;
 
   //---------------------------
 }
@@ -116,8 +120,8 @@ void Recorder::save_image_multiple(){
 
   //Put screenshot flag on
   string path = path_image + "image_" + to_string(save_image_ID);
-  *renderManager->get_save_path() = path;
-  *renderManager->get_is_screenshot() = true;
+  *screenshotManager->get_save_path() = path;
+  *screenshotManager->get_is_screenshot() = true;
   save_image_ID++;
 
   //Keep only a certain number of image
@@ -140,32 +144,32 @@ void Recorder::save_image_path(){
 }
 
 // Frame saving
-void Recorder::save_frame(Cloud* cloud, int ID_subset){
+void Recorder::save_frame(Collection* collection, int ID_object){
   //---------------------------
 
   if(with_save_frame_raw){
-    Subset* subset = sceneManager->get_subset_init_byID(cloud, ID_subset);
-    this->save_frame_subset(subset);
+    Cloud* cloud = (Cloud*)collection->get_obj_init_byID(ID_object);
+    this->save_frame_subset(cloud);
   }else{
     if(save_frame_accu == 1){
-      Subset* subset = sceneManager->get_subset_byID(cloud, ID_subset);
-      this->save_frame_subset(subset);
+      Cloud* cloud = (Cloud*)collection->get_obj_byID(ID_object);
+      this->save_frame_subset(cloud);
     }else{
-      this->save_frame_set(cloud, ID_subset);
+      this->save_frame_set(collection, ID_object);
     }
   }
 
   //---------------------------
 }
-void Recorder::save_frame_subset(Subset* subset){
+void Recorder::save_frame_subset(Cloud* cloud){
   auto t1 = std::chrono::high_resolution_clock::now();
   //---------------------------
 
   //Save frame
-  saverManager->save_subset_silent(subset, "ply", path_frame);
+  saverManager->save_subset_silent(cloud, "ply", path_frame);
 
   //Keep only a certain number of frame
-  string path = path_frame + subset->name + ".ply";
+  string path = path_frame + cloud->name + ".ply";
   if(save_frame_vec.size() < save_frame_max){
     save_frame_vec.push(path);
   }else{
@@ -178,16 +182,16 @@ void Recorder::save_frame_subset(Subset* subset){
   auto t2 = std::chrono::high_resolution_clock::now();
   this->time_save_frame = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 }
-void Recorder::save_frame_set(Cloud* cloud, int ID_subset){
-  Subset* subset = *next(cloud->subset.begin(), ID_subset);
+void Recorder::save_frame_set(Collection* collection, int ID_object){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), ID_object);
   auto t1 = std::chrono::high_resolution_clock::now();
   //---------------------------
 
   //Save frame
-  saverManager->save_set_silent(cloud, ID_subset, path_frame, save_frame_accu);
+  saverManager->save_set_silent(collection, ID_object, path_frame, save_frame_accu);
 
   //Keep only a certain number of frame
-  string path = path_frame + subset->name + ".ply";
+  string path = path_frame + cloud->name + ".ply";
   if(save_frame_vec.size() < save_frame_max){
     save_frame_vec.push(path);
   }else{

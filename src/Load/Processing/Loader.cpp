@@ -12,23 +12,20 @@
 #include "../Format/file_LAS.h"
 #include "../Format/file_CBOR.h"
 
-#include "../Node_load.h"
-
-#include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Interface/File/Directory.h"
-#include "../../Interface/File/Info.h"
-#include "../../Specific/fct_transtypage.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Specific/File/Directory.h"
+#include "../../Specific/File/Info.h"
+#include "../../Specific/File/Path.h"
+#include "../../Specific/Function/fct_transtypage.h"
 
 
 //Constructor / Destructor
-Loader::Loader(Node_load* node_load){
+Loader::Loader(){
   //---------------------------
 
-  Node_engine* node_engine = node_load->get_node_engine();
-
-  this->sceneManager = node_engine->get_sceneManager();
-  this->extractManager = node_load->get_extractManager();
+  this->sceneManager = new Scene();
+  this->extractManager = new Extractor();
+  this->data = Data::get_instance();
 
   this->ptsManager = new file_PTS();
   this->plyManager = new file_PLY();
@@ -42,71 +39,138 @@ Loader::Loader(Node_load* node_load){
 
   //---------------------------
 }
-Loader::~Loader(){}
+Loader::~Loader(){
+  //---------------------------
+
+  delete ptsManager;
+  delete plyManager;
+  delete ptxManager;
+  delete csvManager;
+  delete objManager;
+  delete xyzManager;
+  delete lasManager;
+  delete pcapManager;
+  delete cborManager;
+
+  //---------------------------
+}
 
 //Main functions
-bool Loader::load_cloud(string path){
+Object_* Loader::load_object(string path){
   //---------------------------
 
   //Check file existence
   if(is_file_exist(path) == false){
     string log = "File doesn't exists: "+ path;
     console.AddLog("error", log);
-    return false;
+  }
+
+  //Check file format & retrieve data
+  vector<Data_file*> data_file = load_retrieve_data(path);
+
+  //Extract data and put in the engine
+  Object_* object = extractManager->extract_data_object(data_file[0]);
+
+  //Delete raw data
+  delete data_file[0];
+
+  //---------------------------
+  string log = "Loaded "+ path;
+  console.AddLog("ok", log);
+  return object;
+}
+Collection* Loader::load_collection(string path){
+  //---------------------------
+
+  //Check file existence
+  if(is_file_exist(path) == false){
+    string log = "File doesn't exists: "+ path;
+    console.AddLog("error", log);
   }
 
   //Check file format & retrieve data
   vector<Data_file*> data_vec = load_retrieve_data(path);
 
   //Insert cloud
-  this->load_insertIntoDatabase(data_vec);
+  Collection* collection = load_insertIntoDatabase(data_vec);
 
   //---------------------------
   string log = "Loaded "+ path;
   console.AddLog("ok", log);
-  return true;
+  return collection;
 }
-bool Loader::load_cloud_byFrame(vector<string> path_vec){
-  vector<Data_file*> data_vec;
+Collection* Loader::load_collection_byFrame(vector<string> path_vec){
   tic();
   //---------------------------
 
   //Retrieve data
+  vector<Data_file*> data_vec;
   for(int i=0; i<path_vec.size(); i++){
     Data_file* data = plyManager->Loader(path_vec[i]);
     data_vec.push_back(data);
   }
 
   //Insert cloud
-  this->load_insertIntoDatabase(data_vec);
+  Collection* collection = load_insertIntoDatabase(data_vec);
+  collection->selected_obj = collection->get_obj_byID(0);
+  collection->ID_obj_selected = collection->selected_obj->ID;
 
   //---------------------------
   int duration = (int)toc_ms();
   string log = "Loaded " + to_string(data_vec.size()) + " frames in " + to_string(duration) + " ms";
   console.AddLog("ok", log);
-  return true;
+  return collection;
 }
-bool Loader::load_cloud_onthefly(vector<string> path_vec){
-  vector<Data_file*> data_vec;
+Collection* Loader::load_cloud_onthefly(vector<string> path_vec){
   //---------------------------
 
   //Load only the first cloud
-  Data_file* data = plyManager->Loader(path_vec[0]);
-  data_vec.push_back(data);
+  Data_file* data_file = plyManager->Loader(path_vec[0]);
 
-  //Insert cloud
-  this->load_insertIntoDatabase(data_vec);
+  Object_* object = extractManager->extract_data_object(data_file);
+
+  //Delete raw data
+  delete data_file;
 
   //Save list of file
-  cloud->list_path = path_vec;
-  cloud->onthefly = true;
-  cloud->ID_file++;
+  Collection* collection = data->create_collection_object(object->name);
+  collection->obj_add_new(object);
+  collection->list_otf_path = path_vec;
+  collection->is_onthefly = true;
+  collection->obj_type = "cloud";
+  object->ID = collection->ID_obj_otf++;
 
   //---------------------------
   string log = "Loaded on-the-fly cloud";
   console.AddLog("ok", log);
-  return true;
+  return collection;
 }
+Collection* Loader::load_cloud_empty(){
+  vector<Data_file*> data_vec;
+  //---------------------------
+
+  //Add NULL points
+  Data_file* data = new Data_file();
+  data->path_file = "../media/frame.ply";
+
+  data->xyz.push_back(vec3(0.0f,0.0f,0.0f));
+  data->xyz.push_back(vec3(1.0f,1.0f,1.0f));
+  data->xyz.push_back(vec3(0.5f,0.5f,0.5f));
+
+  data->rgb.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
+  data->rgb.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
+  data->rgb.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
+
+  data_vec.push_back(data);
+
+  //Insert cloud
+  Collection* collection = load_insertIntoDatabase(data_vec);
+
+  //---------------------------
+  return collection;
+}
+
+//Specific loader function
 bool Loader::load_cloud_silent(string path){
   //---------------------------
 
@@ -121,7 +185,7 @@ bool Loader::load_cloud_silent(string path){
   vector<Data_file*> data_vec = load_retrieve_data(path);
 
   //Extract data and put in the engine
-  cloud = extractManager->extract_data(data_vec);
+  this->collection = extractManager->extract_data(data_vec);
 
   //---------------------------
   return true;
@@ -153,39 +217,39 @@ bool Loader::load_cloud_part(string path, int lmin, int lmax){
   //---------------------------
   return true;
 }
-bool Loader::load_cloud_creation(Cloud* cloud_in){
+bool Loader::load_cloud_creation(Collection* cloud_in){
   vector<Data_file*> data_vec;
   //---------------------------
 
   //Take input data
-  for(int i=0; i<cloud_in->subset.size(); i++){
-    Subset* subset = sceneManager->get_subset(cloud_in, i);
+  for(int i=0; i<cloud_in->list_obj.size(); i++){
+    Cloud* cloud = (Cloud*)cloud_in->get_obj(i);
     Data_file* data = new Data_file();
-    data->path = cloud_in->path;
+    data->path_file = cloud_in->path_file_load;
 
     //Location
-    if(subset->xyz.size() != 0){
-      data->location = subset->xyz;
+    if(cloud->xyz.size() != 0){
+      data->xyz = cloud->xyz;
     }
 
     //Color
-    if(subset->RGB.size() != 0){
-      data->color = subset->RGB;
+    if(cloud->rgb.size() != 0){
+      data->rgb = cloud->rgb;
     }
 
     //Intensity
-    if(subset->I.size() != 0){
-      data->intensity = subset->I;
+    if(cloud->I.size() != 0){
+      data->I = cloud->I;
     }
 
     //Timestamp
-    if(subset->ts.size() != 0){
-      data->timestamp = subset->ts;
+    if(cloud->ts.size() != 0){
+      data->ts = cloud->ts;
     }
 
     //Normal
-    if(subset->N.size() != 0){
-      data->normal = subset->N;
+    if(cloud->Nxyz.size() != 0){
+      data->Nxyz = cloud->Nxyz;
     }
 
     data_vec.push_back(data);
@@ -197,39 +261,15 @@ bool Loader::load_cloud_creation(Cloud* cloud_in){
   //---------------------------
   return true;
 }
-bool Loader::load_cloud_empty(){
-  vector<Data_file*> data_vec;
-  //---------------------------
-
-  //Add NULL points
-  Data_file* data = new Data_file();
-  data->path = "../media/frame.ply";
-
-  data->location.push_back(vec3(0.0f,0.0f,0.0f));
-  data->location.push_back(vec3(1.0f,1.0f,1.0f));
-  data->location.push_back(vec3(0.5f,0.5f,0.5f));
-
-  data->color.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
-  data->color.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
-  data->color.push_back(vec4(0.0f,0.0f,0.0f,1.0f));
-
-  data_vec.push_back(data);
-
-  //Insert cloud
-  this->load_insertIntoDatabase(data_vec);
-
-  //---------------------------
-  return true;
-}
-bool Loader::load_cloud_oneFrame(Cloud* cloud, string path){
+bool Loader::load_cloud_oneFrame(Collection* collection, string path){
   //---------------------------
 
   if(is_file_exist(path)){
     //Retrieve data
     Data_file* data = plyManager->Loader(path);
 
-    //Insert frame
-    this->load_insertIntoCloud(data, cloud);
+    //Extract data and put in the engine
+    extractManager->extract_data(collection, data);
 
     //Delete raw data
     delete data;
@@ -239,24 +279,6 @@ bool Loader::load_cloud_oneFrame(Cloud* cloud, string path){
 
   //---------------------------
   return true;
-}
-vector<vec3> Loader::load_vertices(string path){
-  //---------------------------
-
-  //Check file existence
-  if(is_file_exist(path) == false){
-    string log = "File doesn't exists: " + path;
-    console.AddLog("error", log);
-  }
-
-  //Check file format & retrieve data
-  vector<Data_file*> data_vec = load_retrieve_data(path);
-
-  //Extract data
-  vector<vec3> xyz = data_vec[0]->location;
-
-  //---------------------------
-  return xyz;
 }
 
 //Sub-functions
@@ -307,18 +329,13 @@ vector<Data_file*> Loader::load_retrieve_data(string path){
   //---------------------------
   return data_vec;
 }
-void Loader::load_insertIntoDatabase(vector<Data_file*> data_vec){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+Collection* Loader::load_insertIntoDatabase(vector<Data_file*> data_vec){
+  list<Collection*>* list_collection = data->get_list_col_object();
   //---------------------------
 
   //Extract data and put in the engine
-  cloud = extractManager->extract_data(data_vec);
-  list_cloud->push_back(cloud);
-
-  //Update list cloud
-  sceneManager->set_selected_cloud(cloud);
-  sceneManager->update_cloud_oID(list_cloud);
-  sceneManager->update_cloud_glyph(cloud);
+  this->collection = extractManager->extract_data(data_vec);
+  data->insert_new_collection(collection);
 
   //Delete raw data
   for(int i=0; i<data_vec.size(); i++){
@@ -326,13 +343,5 @@ void Loader::load_insertIntoDatabase(vector<Data_file*> data_vec){
   }
 
   //---------------------------
-}
-void Loader::load_insertIntoCloud(Data_file* data, Cloud* cloud){
-  //---------------------------
-
-  //Extract data and put in the engine
-  extractManager->extract_data_frame(cloud, data);
-  cloud->ID_file++;
-
-  //---------------------------
+  return collection;
 }

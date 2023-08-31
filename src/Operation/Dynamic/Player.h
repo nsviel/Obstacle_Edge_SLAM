@@ -26,16 +26,16 @@ public:
   void runtime();
 
   //Selection function
-  void select_bySubsetID(Cloud* cloud, int ID_subset);
+  void select_byObjectID(Collection* collection, int ID_object);
   void compute_wheel_selection(string direction);
-  bool compute_range_limit(Cloud* cloud, int& ID_subset);
+  bool compute_range_limit(Collection* collection, int& ID_object);
 
   //Player functions
   void player_start();
   void player_pause();
   void player_start_or_pause();
   void player_stop();
-  void player_save(Cloud* cloud);
+  void player_save(Collection* collection);
   void player_setFrequency(int frequency);
   void player_selectDirSave();
   

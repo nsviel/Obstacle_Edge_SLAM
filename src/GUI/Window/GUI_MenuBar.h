@@ -12,9 +12,9 @@ class GUI_Initialization;
 
 class Scene;
 class Extraction;
-class Textures;
 class Pather;
 class CoreGLengine;
+class Graph;
 
 
 class GUI_menuBar
@@ -42,8 +42,8 @@ private:
   Scene* sceneManager;
   Pather* pathManager;
   Extraction* extractionManager;
-  Textures* texManager;
   CoreGLengine* glManager;
+  Graph* graphManager;
 
   Node_gui* node_gui;
   GUI_Modal* gui_window;

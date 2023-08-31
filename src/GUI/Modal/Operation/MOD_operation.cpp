@@ -1,15 +1,16 @@
 #include "MOD_operation.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Engine/Scene/Glyph/Glyphs.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
+#include "../../../Scene/Glyph/Glyphs.h"
 #include "../../../Operation/Node_operation.h"
 #include "../../../Operation/Transformation/Filter.h"
 #include "../../../Operation/Transformation/Pose.h"
 #include "../../../Operation/Optimization/Fitting.h"
 #include "../../../Operation/Cloud/Extraction.h"
 #include "../../../Operation/Cloud/Selection.h"
-#include "../../../Specific/fct_transtypage.h"
+#include "../../../Specific/Function/fct_transtypage.h"
 
 #include "../Modal_tab.h"
 extern struct Modal_tab modal_tab;
@@ -20,13 +21,14 @@ MOD_operation::MOD_operation(Node_operation* node_ope){
   //---------------------------
 
   Node_engine* node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->filterManager = node_ope->get_filterManager();
   this->selectionManager = node_ope->get_selectionManager();
   this->fitManager = node_ope->get_fittingManager();
   this->extractionManager = node_ope->get_extractionManager();
-  this->sceneManager = node_engine->get_sceneManager();
-  this->glyphManager = node_engine->get_glyphManager();
+  this->sceneManager = node_scene->get_sceneManager();
+  this->glyphManager = node_scene->get_glyphManager();
   this->poseManager = new Pose();
 
   this->item_width = 150;
@@ -39,22 +41,22 @@ MOD_operation::~MOD_operation(){}
 void MOD_operation::window_selection(){
   if(modal_tab.show_selection){
     ImGui::Begin("Selection part", &modal_tab.show_selection,ImGuiWindowFlags_AlwaysAutoResize);
-    Cloud* cloud = sceneManager->get_selected_cloud();
-    Subset* subset = cloud->subset_selected;
+    Collection* collection = sceneManager->get_selected_collection();
+    Cloud* cloud = (Cloud*)collection->selected_obj;
     //---------------------------
 
     ImGui::Text("Point");
     static bool selectionPtON = false;
     if(ImGui::Checkbox("Selection mode", &selectionPtON)){
-      if(cloud != nullptr && selectionPtON){
+      if(collection != nullptr && selectionPtON){
         selectionManager->set_markMode("sphere");
-        cloud->point_size = 10;
+        cloud->draw_point_size = 10;
         //cloud_movement = false;
       }
 
       if(!selectionPtON){
         selectionManager->set_markMode("cube");
-        cloud->point_size = 1;
+        cloud->draw_point_size = 1;
         //cloud_movement = true;
       }
     }
@@ -80,48 +82,48 @@ void MOD_operation::window_selection(){
     ImGui::SameLine();
     bool* highlightON = extractionManager->get_highlightON();
     if(ImGui::Checkbox("Hightligth", highlightON) || ImGui::IsKeyPressed(258)){
-      if(cloud != nullptr){
-        Subset* subset = cloud->subset_selected;
-        Subset* subset_init = sceneManager->get_subset_selected_init();
-        extractionManager->fct_highlighting(subset, subset_init);
+      if(collection != nullptr){
+        Cloud* cloud = (Cloud*)collection->selected_obj;
+        Cloud* list_obj_init = (Cloud*)collection->get_obj_selected_init();
+        extractionManager->fct_highlighting(cloud, list_obj_init);
       }
     }
 
     //AABB manipulators
     ImGui::PushAllowKeyboardFocus(false);
     if(ImGui::DragFloatRange2("X", &xmin, &xmax, 0.25f, 0.01f, 100.0f, "%.1f %%", "%.1f %%")){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         extractionManager->set_AABB_min(vec3(xmin,ymin,zmin));
         extractionManager->set_AABB_max(vec3(xmax,ymax,zmax));
-        //glyphManager->update_glyph_object("aabb", cloud);
+        //glyphManager->update_glyph_object("aabb", collection);
       }
     }
     if(ImGui::DragFloatRange2("Y", &ymin, &ymax, 0.25f, 0.0f, 100.0f, "%.1f %%", "%.1f %%")){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         extractionManager->set_AABB_min(vec3(xmin,ymin,zmin));
         extractionManager->set_AABB_max(vec3(xmax,ymax,zmax));
-        //glyphManager->update_glyph_object("aabb", cloud);
+        //glyphManager->update_glyph_object("aabb", collection);
       }
     }
     if(ImGui::DragFloatRange2("Z", &zmin, &zmax, 0.25f, 0.0f, 100.0f, "%.1f %%", "%.1f %%")){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         extractionManager->set_AABB_min(vec3(xmin,ymin,zmin));
         extractionManager->set_AABB_max(vec3(xmax,ymax,zmax));
-        //glyphManager->update_glyph_object("aabb", cloud);
+        //glyphManager->update_glyph_object("aabb", collection);
       }
     }
     ImGui::PopAllowKeyboardFocus();
 
     if(ImGui::Button("Extract part", ImVec2(100,0))){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         vec3 min_pourc = vec3(xmin, ymin, zmin);
         vec3 max_pourc = vec3(xmax, ymax, zmax);
-        extractionManager->fct_selectPart(subset, min_pourc, max_pourc);
+        extractionManager->fct_selectPart(cloud, min_pourc, max_pourc);
       }
     }
 
     //Table of selected parts
-    list<subpart*>* list = extractionManager->get_listParts();
+    /*list<subpart*>* list = extractionManager->get_listParts();
     ImGui::Columns(5, "part");
     ImGui::Separator();
     ImGui::Text("ID"); ImGui::NextColumn();
@@ -178,7 +180,7 @@ void MOD_operation::window_selection(){
       vec3 maxloc = part->maxloc;
       ImGui::Text("%.1f %.1f %.1f", maxloc.x, maxloc.y, maxloc.z);
       ImGui::NextColumn();
-    }
+    }*/
     ImGui::Columns(1);
     ImGui::Separator();
 
@@ -192,32 +194,32 @@ void MOD_operation::window_selection(){
 void MOD_operation::window_fitting(){
   if(modal_tab.show_fitting){
     ImGui::Begin("Fitting", &modal_tab.show_fitting,ImGuiWindowFlags_AlwaysAutoResize);
-    Cloud* cloud = sceneManager->get_selected_cloud();
-    Subset* subset = cloud->subset_selected;
+    Collection* collection = sceneManager->get_selected_collection();
+    Cloud* cloud = (Cloud*)collection->selected_obj;
     int sizeButton = 150;
     //---------------------------
 
     //Sphere fitting
     if(ImGui::Button("Sphere fitting", ImVec2(sizeButton,0))){
-      if(cloud != nullptr){
-        list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
-        fitManager->Sphere_cloudToCenter_all(list_cloud);
+      if(collection != nullptr){
+        list<Collection*>* list_collection = sceneManager->get_list_col_object();
+        fitManager->Sphere_cloudToCenter_all(list_collection);
       }
     }
 
     //Plane fitting
     if(ImGui::Button("Plane fitting", ImVec2(sizeButton,0))){
-      if(cloud != nullptr){
-        //fitManager->Plane_cloud(subset);
+      if(collection != nullptr){
+        //fitManager->Plane_cloud(cloud);
       }
     }
 
     //Axis alignement
     if(ImGui::Button("X alignement", ImVec2(sizeButton,0))){
-      if(cloud != nullptr){
-        poseManager->make_orientAxis_X(cloud);
-        poseManager->make_alignAxis_X(cloud);
-        sceneManager->update_cloud_location(cloud);
+      if(collection != nullptr){
+        poseManager->make_orientAxis_X(collection);
+        poseManager->make_alignAxis_X(collection);
+        //sceneManager->update_buffer_location(collection);
       }
     }
 

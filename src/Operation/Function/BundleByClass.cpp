@@ -1,6 +1,6 @@
 #include "BundleByClass.h"
 
-#include "../../Specific/fct_math.h"
+#include "../../Specific/Function/fct_math.h"
 
 
 //Constructor / Destructor
@@ -8,31 +8,31 @@ BundleByClass::BundleByClass(){}
 BundleByClass::~BundleByClass(){}
 
 //Bundle functions
-void BundleByClass::compute_bundleByClass(Cloud* cloud, float stepAngle){
-  Subset* subset_init = *next(cloud->subset_init.begin(), cloud->ID_selected);
+void BundleByClass::compute_bundleByClass(Collection* collection, float stepAngle){
+  Cloud* list_obj_init = (Cloud*)*next(collection->list_obj_init.begin(), collection->ID_obj_selected);
   //---------------------------
 
-  this->make_checking(cloud);
+  this->make_checking(collection);
   this->make_clear();
 
   //Compute bundling
-  this->make_bundle(cloud, stepAngle, fct_max(subset_init->It));
+  this->make_bundle(collection, stepAngle, fct_max(list_obj_init->It));
 
   //Compute confidence interval
   this->make_StudentLaw();
   //---------------------------
 }
-void BundleByClass::compute_bundleByClass_maxAngle(Cloud* cloud, int stepAngle, int maxAngle){
-  Subset* subset = *next(cloud->subset.begin(), cloud->ID_selected);
-  Subset* subset_init = *next(cloud->subset_init.begin(), cloud->ID_selected);
+void BundleByClass::compute_bundleByClass_maxAngle(Collection* collection, int stepAngle, int maxAngle){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), collection->ID_obj_selected);
+  Cloud* list_obj_init = (Cloud*)*next(collection->list_obj_init.begin(), collection->ID_obj_selected);
   //---------------------------
 
-  vector<float>& Is = subset->I;
-  vector<float>& dist = subset_init->R;
-  vector<float>& cosIt = subset_init->cosIt;
-  vector<float>& It = subset_init->It;
+  vector<float>& Is = cloud->I;
+  vector<float>& dist = list_obj_init->R;
+  vector<float>& cosIt = list_obj_init->cosIt;
+  vector<float>& It = list_obj_init->It;
   vector<float> cIs, cDist, cCosIt, cIt;
-  this->make_checking(cloud);
+  this->make_checking(collection);
   this->make_clear();
 
   //Sample of data for each degree units
@@ -179,15 +179,15 @@ void BundleByClass::compute_vectorByClass(vector<vector<float>>& data_X, vector<
 }
 
 //Subfunctions
-void BundleByClass::make_bundle(Cloud* cloud, float stepAngle, int maxAngle){
-  Subset* subset = *next(cloud->subset.begin(), cloud->ID_selected);
-  Subset* subset_init = *next(cloud->subset_init.begin(), cloud->ID_selected);
+void BundleByClass::make_bundle(Collection* collection, float stepAngle, int maxAngle){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), collection->ID_obj_selected);
+  Cloud* list_obj_init = (Cloud*)*next(collection->list_obj_init.begin(), collection->ID_obj_selected);
   //---------------------------
 
-  vector<float>& Is = subset->I;
-  vector<float>& dist = subset_init->R;
-  vector<float>& cosIt = subset_init->cosIt;
-  vector<float>& It = subset_init->It;
+  vector<float>& Is = cloud->I;
+  vector<float>& dist = list_obj_init->R;
+  vector<float>& cosIt = list_obj_init->cosIt;
+  vector<float>& It = list_obj_init->It;
   vector<float> cIs, cDist, cCosIt, cIt;
 
   //Sample of data for each degree units
@@ -225,15 +225,15 @@ void BundleByClass::make_bundle(Cloud* cloud, float stepAngle, int maxAngle){
     cout<<"--> Bundle by class: fail"<<endl;
   }
 }
-void BundleByClass::make_checking(Cloud* cloud){
-  Subset* subset = *next(cloud->subset.begin(), cloud->ID_selected);
-  Subset* subset_init = *next(cloud->subset_init.begin(), cloud->ID_selected);
+void BundleByClass::make_checking(Collection* collection){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), collection->ID_obj_selected);
+  Cloud* list_obj_init = (Cloud*)*next(collection->list_obj_init.begin(), collection->ID_obj_selected);
   //---------------------------
 
-  vector<float>& Is = subset->I;
-  vector<float>& dist = subset_init->R;
-  vector<float>& cosIt = subset_init->cosIt;
-  vector<float>& It = subset_init->It;
+  vector<float>& Is = cloud->I;
+  vector<float>& dist = list_obj_init->R;
+  vector<float>& cosIt = list_obj_init->cosIt;
+  vector<float>& It = list_obj_init->It;
 
   if(Is.size() == 0){
     cout<<"--> Bundle: No intensity data"<<endl;
@@ -330,13 +330,13 @@ void BundleByClass::plot_confidenceInterval(){
 
     //---------------------------
 }
-void BundleByClass::plot_intensityBundle(Cloud* cloud){
-  Subset* subset = *next(cloud->subset.begin(), cloud->ID_selected);
-  Subset* subset_init = *next(cloud->subset_init.begin(), cloud->ID_selected);
+void BundleByClass::plot_intensityBundle(Collection* collection){
+  Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), collection->ID_obj_selected);
+  Cloud* list_obj_init = (Cloud*)*next(collection->list_obj_init.begin(), collection->ID_obj_selected);
   //---------------------------
 
-  vector<float>& Is = subset->I;
-  vector<float>& It = subset_init->It;
+  vector<float>& Is = cloud->I;
+  vector<float>& It = list_obj_init->It;
   Gnuplot gp;
 
   //Style

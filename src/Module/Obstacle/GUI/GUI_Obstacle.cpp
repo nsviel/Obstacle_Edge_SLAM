@@ -8,7 +8,8 @@
 #include "../../SLAM/GUI/GUI_Slam.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 #include "../../../Operation/Node_operation.h"
 #include "../../../Operation/Transformation/Coordinate.h"
 #include "../../../Interface/Node_interface.h"
@@ -23,8 +24,9 @@ GUI_Obstacle::GUI_Obstacle(Module_obstacle* module){
   Node_operation* node_ope = node_module->get_node_ope();
   Node_engine* node_engine = module->get_node_engine();
   Node_interface* node_interface = node_engine->get_node_interface();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->coordManager = node_ope->get_coordManager();
   this->obstacleManager = module->get_obstacleManager();
   this->predManager = module->get_predManager();
@@ -120,12 +122,12 @@ void GUI_Obstacle::parameter_prediction(){
 
 //Draw label text function
 void GUI_Obstacle::runtime_display_naming(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  /*Collection* collection = sceneManager->get_selected_collection();
   if(cloud != nullptr){
     //---------------------------
 
-    Subset* subset = cloud->subset_selected;
-    Data_pred* detection = &subset->detection;
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    Data_pred* detection = &cloud->detection;
 
     this->label_ID = 0;
     for(int j=0; j<detection->name.size(); j++){
@@ -139,7 +141,7 @@ void GUI_Obstacle::runtime_display_naming(){
     }
 
     //---------------------------
-  }
+  }*/
 }
 void GUI_Obstacle::compute_draw_text(string text, vec3 position){
   //---------------------------

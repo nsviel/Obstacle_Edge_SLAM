@@ -3,8 +3,9 @@
 
 #include "../../GUI/Node_gui.h"
 #include "../../Engine/Node_engine.h"
+#include "../../Scene/Node_scene.h"
 #include "../../Engine/Core/Dimension.h"
-#include "../../Engine/Scene/Scene.h"
+#include "../../Scene/Data/Scene.h"
 
 #include "imgui/imgui.h"
 
@@ -39,7 +40,6 @@ void GUI_consol::draw_consol(){
   //----------------------------
 
   //Get panel dimension
-  vec2 win_dim = dimManager->get_win_dim();
   vec2* bp_pos = dimManager->get_gui_bp_pos();
   vec2* bp_dim = dimManager->get_gui_bp_dim();
 

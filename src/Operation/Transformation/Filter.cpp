@@ -5,10 +5,11 @@
 #include "../Node_operation.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Configuration.h"
-#include "../../Specific/fct_math.h"
-#include "../../Specific/fct_terminal.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Engine/Core/Configuration.h"
+#include "../../Specific/Function/fct_math.h"
+#include "../../Specific/Function/fct_terminal.h"
 
 
 //Constructor / Destructor
@@ -16,9 +17,10 @@ Filter::Filter(Node_operation* node_ope){
   //---------------------------
 
   Node_engine* node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->configManager = node_engine->get_configManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->attribManager = node_ope->get_attribManager();
 
   //---------------------------
@@ -41,11 +43,11 @@ void Filter::update_configuration(){
 }
 
 //Functions
-void Filter::filter_maxAngle(Cloud* cloud, float angleMax){
-  Subset* subset = cloud->subset_selected;
-  attribManager->compute_attribut_subset(subset);
-  vector<float>& It = subset->It;
-  int size_before = subset->nb_point;
+void Filter::filter_maxAngle(Collection* collection, float angleMax){
+  Cloud* cloud = (Cloud*)collection->selected_obj;
+  attribManager->compute_attribut_subset(cloud);
+  vector<float>& It = cloud->It;
+  int size_before = cloud->nb_point;
   tic();
   //---------------------------
 
@@ -57,30 +59,30 @@ void Filter::filter_maxAngle(Cloud* cloud, float angleMax){
   }
 
   //Supress points with angle superior to the limit
-  attribManager->make_supressPoints(subset, idx);
+  attribManager->make_supressPoints(cloud, idx);
 
   //---------------------------
   float duration = toc();
   if(verbose){
-    int size_filtered = subset->xyz.size();
+    int size_filtered = cloud->xyz.size();
     string log = "Filter by angle (" + to_string(angleMax) + "°) : " + to_string(size_before) + " -> " + to_string(size_filtered) + " points (" + to_string(duration) + " ms)";
     console.AddLog("ok", log);
   }
 }
 void Filter::filter_sphere(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
   float r = sphere_D/2;
   float err = r/20;
   //---------------------------
 
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
-    Subset* subset = cloud->subset_selected;
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(),i);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
 
-    if(subset->name.find("Sphere") != std::string::npos){
-      vector<vec3>& XYZ = subset->xyz;
-      vector<float>& dist = subset->R;
-      if(dist.size() == 0) {attribManager->compute_Distances(subset);}
+    if(cloud->name.find("Sphere") != std::string::npos){
+      vector<vec3>& XYZ = cloud->xyz;
+      vector<float>& dist = cloud->R;
+      if(dist.size() == 0) {attribManager->compute_Distances(cloud);}
 
       //Search for nearest point
       float distm, Xm, Ym, Zm;
@@ -106,30 +108,30 @@ void Filter::filter_sphere(){
         }
       }
 
-      attribManager->make_supressPoints(subset, idx);
-      sceneManager->update_cloud_glyph(cloud);
+      attribManager->make_supressPoints(cloud, idx);
+      sceneManager->update_glyph(collection);
     }
   }
 
   //---------------------------
 }
-void Filter::filter_sphere_cloud(Cloud* cloud){
+void Filter::filter_sphere_collection(Collection* collection){
   //---------------------------
 
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = *next(cloud->subset.begin(), i);
-    this->filter_sphere_subset(subset);
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), i);
+    this->filter_sphere_cloud(cloud);
   }
 
   //---------------------------
 }
-void Filter::filter_sphere_subset(Subset* subset){
-  vector<vec3>& xyz = subset->xyz;
+void Filter::filter_sphere_cloud(Cloud* object){
+  vector<vec3>& xyz = object->xyz;
   vector<int> idx;
   //---------------------------
 
   for(int i=0; i<xyz.size(); i++){
-    float dist = fct_distance(xyz[i], subset->root);
+    float dist = fct_distance(xyz[i], object->root);
     if(dist < sphere_min || dist > sphere_max){
       idx.push_back(i);
     }
@@ -137,29 +139,29 @@ void Filter::filter_sphere_subset(Subset* subset){
 
   //Supress points
   int idx_size = idx.size();
-  attribManager->make_supressPoints(subset, idx);
+  attribManager->make_supressPoints(object, idx);
 
   //---------------------------
 }
-void Filter::filter_cylinder_cloud(Cloud* cloud){
+void Filter::filter_cylinder_cloud(Collection* collection){
   //---------------------------
 
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = *next(cloud->subset.begin(), i);
-    this->filter_cylinder_subset(subset);
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), i);
+    this->filter_cylinder_subset(cloud);
   }
 
   //---------------------------
 }
-void Filter::filter_cylinder_subset(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
+void Filter::filter_cylinder_subset(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
   vector<int> idx;
   //---------------------------
 
   //Check points condition
   for(int i=0; i<XYZ.size(); i++){
     vec3 point = XYZ[i];
-    float dist = fct_distance(point, subset->root);
+    float dist = fct_distance(point, cloud->root);
 
     if(dist < cyl_r_min || dist > cyl_r_max || point.z < cyl_z_min){
       idx.push_back(i);
@@ -168,7 +170,7 @@ void Filter::filter_cylinder_subset(Subset* subset){
 
   //Supress non valid points
   int idx_size = idx.size();
-  attribManager->make_supressPoints(subset, idx);
+  attribManager->make_supressPoints(cloud, idx);
 
   //---------------------------
   if(verbose){

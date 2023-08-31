@@ -1,7 +1,8 @@
 #include "MOD_filter.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 
 #include "../../../Operation/Node_operation.h"
 #include "../../../Operation/Transformation/Filter.h"
@@ -15,9 +16,10 @@ MOD_filter::MOD_filter(Node_operation* node_ope){
   //---------------------------
 
   Node_engine* node_engine = node_ope->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->filterManager = node_ope->get_filterManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
 
   this->item_width = 150;
 
@@ -47,13 +49,13 @@ void MOD_filter::design_filter(){
 
 //Specific function
 void MOD_filter::filter_cylinder(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
   //---------------------------
 
   if (ImGui::Button("Cylinder cleaning", ImVec2(item_width,0))){
-    if(cloud != nullptr){
-      filterManager->filter_cylinder_cloud(cloud);
+    if(collection != nullptr){
+      filterManager->filter_cylinder_cloud(collection);
     }
   }
   float* r_min = filterManager->get_cyl_r_min();
@@ -69,19 +71,19 @@ void MOD_filter::filter_cylinder(){
   //---------------------------
 }
 void MOD_filter::filter_byAngle(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
   //---------------------------
 
   static int maxAngle = 80;
   if(ImGui::Button("Filter by angle", ImVec2(item_width,0))){
-    if(cloud != nullptr){
+    if(collection != nullptr){
 
-      list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
-      for(int i=0; i<list_cloud->size(); i++){
-        Cloud* cloud = *next(list_cloud->begin(),i);
-        filterManager->filter_maxAngle(cloud, maxAngle);
-        sceneManager->update_cloud_location(cloud);
+      list<Collection*>* list_collection = sceneManager->get_list_col_object();
+      for(int i=0; i<list_collection->size(); i++){
+        Collection* collection = *next(list_collection->begin(),i);
+        filterManager->filter_maxAngle(collection, maxAngle);
+        //sceneManager->update_buffer_location(collection);
       }
 
     }
@@ -93,12 +95,12 @@ void MOD_filter::filter_byAngle(){
   //---------------------------
 }
 void MOD_filter::filter_sphere(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
   //---------------------------
 
   if(ImGui::Button("Clean sphere cloud", ImVec2(item_width,0))){
-    if(cloud != nullptr){
+    if(collection != nullptr){
       filterManager->filter_sphere();
     }
   }

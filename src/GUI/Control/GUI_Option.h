@@ -1,6 +1,8 @@
 #ifndef GUI_OPION_H
 #define GUI_OPION_H
 
+#include "../../common.h"
+
 class GUI_Control;
 class Node_gui;
 
@@ -12,8 +14,11 @@ class Heatmap;
 class Transformation;
 class Renderer;
 class Configuration;
-
-#include "../../common.h"
+class Engine;
+class Texture;
+class Glyphs;
+class Capture;
+class Online;
 
 
 class GUI_option
@@ -34,6 +39,9 @@ public:
   void option_mode();
   void option_font();
 
+  //Mode subfunction
+  void mode_capture_demo();
+
   inline void set_backgroundColorPtr(vec3* value){this->backgColor = value;}
 
 private:
@@ -47,7 +55,12 @@ private:
   Object* objectManager;
   Heatmap* heatmapManager;
   Pather* pathManager;
+  Glyphs* glyphManager;
   Renderer* renderManager;
+  Engine* engineManager;
+  Texture* texManager;
+  Capture* captureManager;
+  Online* onlineManager;
 
   vec3* backgColor;
 };

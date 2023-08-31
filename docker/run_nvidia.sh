@@ -8,5 +8,5 @@ sudo docker run \
     --publish=2370:2370 \
     --publish=8888:8888 \
     -v data:/app/hubium \
-    edge_processing
+    velodium
 xhost - >/dev/null

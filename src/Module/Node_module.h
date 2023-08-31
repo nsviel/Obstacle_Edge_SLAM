@@ -1,7 +1,7 @@
 #ifndef NODE_MODULE_H
 #define NODE_MODULE_H
 
-#include "../common.h"
+#include "../Specific/Base/Node.h"
 
 class Node_engine;
 class Node_operation;
@@ -13,7 +13,7 @@ class Module_obstacle;
 class Module_slam;
 
 
-class Node_module
+class Node_module : public Node
 {
 public:
   //Constructor / Destructor
@@ -28,7 +28,7 @@ public:
   void runtime();
   void draw();
   void draw_online();
-  void online(Cloud* cloud, int subset_ID);
+  void online(Collection* collection, int subset_ID);
 
   inline Node_engine* get_node_engine(){return node_engine;}
   inline Node_operation* get_node_ope(){return node_ope;}

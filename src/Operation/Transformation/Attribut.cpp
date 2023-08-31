@@ -3,76 +3,82 @@
 #include "../Node_operation.h"
 #include "../Optimization/Fitting.h"
 
-#include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Specific/fct_math.h"
-#include "../../Specific/fct_terminal.h"
+#include "../../Engine/GPU/GPU_data.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Specific/Function/fct_math.h"
+#include "../../Specific/Function/fct_terminal.h"
 
 #include "NormalHough/Normals.h"
 
 
 //Constructor / destructor
-Attribut::Attribut(Node_operation* node_ope){
+Attribut::Attribut(){
   //---------------------------
 
-  Node_engine* node_engine = node_ope->get_node_engine();
-
-  this->sceneManager = node_engine->get_sceneManager();
-  this->fitManager = node_ope->get_fittingManager();
+  this->sceneManager = new Scene();
+  this->fitManager = new Fitting();
+  this->gpuManager = new GPU_data();
 
   this->sphereRadius = 0.0695;
 
   //---------------------------
 }
-Attribut::~Attribut(){}
+Attribut::~Attribut(){
+  //---------------------------
+
+  delete sceneManager;
+  delete fitManager;
+
+  //---------------------------
+}
 
 //General
 void Attribut::compute_attribut_all(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
   //---------------------------
 
-  for(int i=0;i<list_cloud->size();i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
-    Subset* subset = cloud->subset_selected;
-    this->compute_attribut_subset(subset);
+  for(int i=0;i<list_collection->size();i++){
+    Collection* collection = *next(list_collection->begin(),i);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    this->compute_attribut_subset(cloud);
   }
 
   //---------------------------
 }
-void Attribut::compute_attribut_list(list<Cloud*>* list){
+void Attribut::compute_attribut_list(list<Collection*>* list){
   //---------------------------
 
   for(int i=0;i<list->size();i++){
-    Cloud* cloud = *next(list->begin(),i);
-    Subset* subset = cloud->subset_selected;
-    this->compute_attribut_subset(subset);
+    Collection* collection = *next(list->begin(),i);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    this->compute_attribut_subset(cloud);
   }
 
   //---------------------------
 }
-void Attribut::compute_attribut_subset(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<float>& Is = subset->I;
-  vector<float>& dist = subset->R;
-  vector<float>& cosIt = subset->cosIt;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_attribut_subset(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<float>& Is = cloud->I;
+  vector<float>& dist = cloud->R;
+  vector<float>& cosIt = cloud->cosIt;
+  vector<vec3>& N = cloud->Nxyz;
   //---------------------------
 
   //Distances
-  this->compute_Distances(subset);
+  this->compute_Distances(cloud);
 
   //Normal
   if(N.size() == 0){
-    this->compute_normals(subset);
+    this->compute_normals(cloud);
   }
 
   //Incidence angle
   if(N.size() != 0){
-    this->compute_cosIt(subset);
+    this->compute_cosIt(cloud);
   }
 
   //Checking integrity
-  this->compute_checkForNan(subset);
+  this->compute_checkForNan(cloud);
 
   //---------------------------
   if(Is.size() != XYZ.size()) cout<<"Is data problem - Is: "<<Is.size()<<" XYZ: "<<XYZ.size()<<endl;
@@ -82,18 +88,18 @@ void Attribut::compute_attribut_subset(Subset* subset){
     cout<<"cosit data problem - XYZ: "<<XYZ.size()<<" - cosIt: "<<cosIt.size()<<endl;
   }
 }
-void Attribut::compute_attribut_cloud(Cloud* cloud){
+void Attribut::compute_attribut_cloud(Collection* collection){
   //---------------------------
 
-  Subset* subset = cloud->subset_selected;
-  this->compute_attribut_subset(subset);
+  Cloud* cloud = (Cloud*)collection->selected_obj;
+  this->compute_attribut_subset(cloud);
 
   //---------------------------
 }
-void Attribut::compute_distToScanner(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<float>& dist = subset->R;
-  vec3& scanpos = subset->root;
+void Attribut::compute_distToScanner(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<float>& dist = cloud->R;
+  vec3& scanpos = cloud->root;
   //---------------------------
 
   dist.clear();
@@ -104,9 +110,9 @@ void Attribut::compute_distToScanner(Subset* subset){
 
   //---------------------------
 }
-void Attribut::compute_Distances(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vec3 root = subset->root;
+void Attribut::compute_Distances(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vec3 root = cloud->root;
   //---------------------------
 
   //Compute distances
@@ -117,19 +123,19 @@ void Attribut::compute_Distances(Subset* subset){
 
   //---------------------------
 }
-void Attribut::compute_cosIt(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
-  vector<float>& dist = subset->R;
-  vector<float>& cosIt = subset->cosIt;
-  vector<float>& It = subset->It;
-  vec3 root = subset->root;
+void Attribut::compute_cosIt(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
+  vector<float>& dist = cloud->R;
+  vector<float>& cosIt = cloud->cosIt;
+  vector<float>& It = cloud->It;
+  vec3 root = cloud->root;
   //---------------------------
 
   //check data
   cosIt.clear(); It.clear();
   if(dist.size() == 0){
-    compute_Distances(subset);
+    compute_Distances(cloud);
   }
   if(N.size() == 0){
     //cout<<"No normal for cosIt computation"<<endl;
@@ -161,19 +167,19 @@ void Attribut::compute_cosIt(Subset* subset){
   //---------------------------
 }
 
-void Attribut::compute_subset_cosIt(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
-  vector<float>& dist = subset->R;
-  vector<float>& cosIt = subset->cosIt;
-  vector<float>& It = subset->It;
-  vec3 root = subset->root;
+void Attribut::compute_subset_cosIt(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
+  vector<float>& dist = cloud->R;
+  vector<float>& cosIt = cloud->cosIt;
+  vector<float>& It = cloud->It;
+  vec3 root = cloud->root;
   //---------------------------
 
   //check data
   cosIt.clear(); It.clear();
   if(dist.size() == 0){
-    this->compute_subset_distance(subset);
+    this->compute_subset_distance(cloud);
   }
   if(N.size() == 0){
     cout<<"No normal for cosIt computation"<<endl;
@@ -204,9 +210,9 @@ void Attribut::compute_subset_cosIt(Subset* subset){
 
   //---------------------------
 }
-void Attribut::compute_subset_distance(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vec3 root = subset->root;
+void Attribut::compute_subset_distance(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vec3 root = cloud->root;
   //---------------------------
 
   //Compute distances
@@ -216,15 +222,15 @@ void Attribut::compute_subset_distance(Subset* subset){
   }
 
   //---------------------------
-  subset->R = dist;
+  cloud->R = dist;
 }
 
-void Attribut::make_supressPoints(Subset* subset, vector<int>& idx){
+void Attribut::make_supressPoints(Cloud* cloud, vector<int>& idx){
   if(idx.size() == 0)return;
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
-  vector<vec4>& RGB = subset->RGB;
-  vector<float>& Is = subset->I;
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
+  vector<vec4>& RGB = cloud->rgb;
+  vector<float>& Is = cloud->I;
   //---------------------------
 
   //Sort indice vector
@@ -252,37 +258,85 @@ void Attribut::make_supressPoints(Subset* subset, vector<int>& idx){
   }
 
   //location
-  subset->xyz = XYZ_b;
-  subset->nb_point = XYZ_b.size();
+  cloud->xyz = XYZ_b;
+  cloud->nb_point = XYZ_b.size();
 
   //attributs
   if(RGB.size() != 0){
-    subset->RGB = RGB_b;
+    cloud->rgb = RGB_b;
   }
   if(Is.size() != 0){
-    subset->I = Is_b;
+    cloud->I = Is_b;
   }
   if(N.size() != 0){
-    subset->N = N_b;
+    cloud->Nxyz = N_b;
   }
 
-  if(subset->R.size() != 0){
-    this->compute_Distances(subset);
+  if(cloud->R.size() != 0){
+    this->compute_Distances(cloud);
   }
-  if(subset->cosIt.size() != 0){
-    this->compute_cosIt(subset);
+  if(cloud->cosIt.size() != 0){
+    this->compute_cosIt(cloud);
   }
   idx.clear();
 
   //---------------------------
-  sceneManager->update_subset_location(subset);
-  sceneManager->update_subset_color(subset);
+  gpuManager->update_buffer_location(cloud);
+  gpuManager->update_buffer_color(cloud);
 }
-void Attribut::make_supressPoint(Subset* subset, int id){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
-  vector<vec4>& RGB = subset->RGB;
-  vector<float>& Is = subset->I;
+void Attribut::make_supressPoints(Object_* object, vector<int>& idx){
+  if(idx.size() == 0)return;
+  vector<vec3>& XYZ = object->xyz;
+  vector<vec3>& N = object->Nxyz;
+  vector<vec4>& RGB = object->rgb;
+  //---------------------------
+
+  //Sort indice vector
+  sort(idx.begin(), idx.end());
+
+  //Recreate vector -> Fastest delection method
+  vector<vec3> XYZ_b;
+  vector<vec4> RGB_b;
+  vector<float> Is_b;
+  vector<vec3> N_b;
+  int cpt = 0;
+
+  for(int i=0; i<XYZ.size(); i++){
+    //if i different from not taking account point
+    if(i != idx[cpt]){
+      XYZ_b.push_back(XYZ[i]);
+      if(RGB.size() != 0) RGB_b.push_back(RGB[i]);
+      if(N.size() != 0) N_b.push_back(N[i]);
+    }
+    //if not taking account point, ok, pass to the next
+    else{
+      cpt++;
+    }
+  }
+
+  //location
+  object->xyz = XYZ_b;
+  object->nb_point = XYZ_b.size();
+
+  //attributs
+  if(RGB.size() != 0){
+    object->rgb = RGB_b;
+  }
+  if(N.size() != 0){
+    object->Nxyz = N_b;
+  }
+
+  idx.clear();
+
+  //---------------------------
+  gpuManager->update_buffer_location(object);
+  gpuManager->update_buffer_color(object);
+}
+void Attribut::make_supressPoint(Cloud* cloud, int id){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
+  vector<vec4>& RGB = cloud->rgb;
+  vector<float>& Is = cloud->I;
   //---------------------------
 
   //Recreate vector - Fastest delection method
@@ -300,32 +354,32 @@ void Attribut::make_supressPoint(Subset* subset, int id){
   }
 
   //location
-  subset->xyz = XYZ_b;
-  subset->nb_point = XYZ_b.size();
+  cloud->xyz = XYZ_b;
+  cloud->nb_point = XYZ_b.size();
 
   //attributs
   if(RGB.size() != 0){
-    subset->RGB = RGB_b;
+    cloud->rgb = RGB_b;
   }
   if(Is.size() != 0){
-    subset->I = Is_b;
+    cloud->I = Is_b;
   }
   if(N.size() != 0){
-    subset->N = N_b;
+    cloud->Nxyz = N_b;
   }
 
-  if(subset->R.size() != 0){
-    this->compute_Distances(subset);
+  if(cloud->R.size() != 0){
+    this->compute_Distances(cloud);
   }
-  if(subset->cosIt.size() != 0){
-    this->compute_cosIt(subset);
+  if(cloud->cosIt.size() != 0){
+    this->compute_cosIt(cloud);
   }
 
-  subset->selected.clear();
+  cloud->selected.clear();
 
   //---------------------------
-  sceneManager->update_subset_location(subset);
-  sceneManager->update_subset_color(subset);
+  gpuManager->update_buffer_location(cloud);
+  gpuManager->update_buffer_color(cloud);
 }
 void Attribut::make_supressPoints(vector<vec3>& vec, vector<int>& idx){
   if(idx.size() == 0)return;
@@ -354,27 +408,27 @@ void Attribut::make_supressPoints(vector<vec3>& vec, vector<int>& idx){
   vec = vec_b;
 }
 void Attribut::cloudsData(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
   //---------------------------
 
   ofstream myfile;
   myfile.open ("Clouds_Name-Is_Ic_It_cosIt_R.txt");
   myfile << "\n";
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
-    Subset* subset = cloud->subset_selected;
-    Subset* subset_init = sceneManager->get_subset_selected_init();
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(),i);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    Cloud* list_obj_init = (Cloud*)collection->get_obj_selected_init();
 
-    if(subset->name.find("rdm") != std::string::npos){
-      vector<float>& Is = subset->I;
-      vector<float>& Is_ini = subset_init->I;
-      vector<float>& It = subset_init->It;
-      vector<float>& cosIt = subset_init->cosIt;
-      vector<float>& dist = subset_init->R;
+    if(cloud->name.find("rdm") != std::string::npos){
+      vector<float>& Is = cloud->I;
+      vector<float>& Is_ini = list_obj_init->I;
+      vector<float>& It = list_obj_init->It;
+      vector<float>& cosIt = list_obj_init->cosIt;
+      vector<float>& dist = list_obj_init->R;
 
-      if(cosIt.size() == 0 && subset->N.size() != 0) compute_cosIt(subset);
+      if(cosIt.size() == 0 && cloud->Nxyz.size() != 0) compute_cosIt(cloud);
 
-      myfile << subset->name<< " ";
+      myfile << cloud->name<< " ";
       myfile << fct_mean(Is_ini)<<" "<<fct_mean(Is)<<" "<<fct_mean(It)<<" "<<fct_mean(cosIt)<<" "<<fct_mean(dist);
       myfile << "\n";
     }
@@ -397,25 +451,25 @@ vector<float> Attribut::get_z_vector(vector<vec3>& xyz){
 }
 
 //Normal
-void Attribut::compute_normals(Subset* subset){
+void Attribut::compute_normals(Cloud* cloud){
   //---------------------------
 
-  if(subset->name.find("Sphere") != std::string::npos || subset->name.find("sphere") != std::string::npos){
-    this->compute_normals_sphere(subset);
-  }else if(subset->name.find("Spectralon") != std::string::npos || subset->name.find("spectralon") != std::string::npos){
-    this->compute_normals_planFitting(subset);
+  if(cloud->name.find("Sphere") != std::string::npos || cloud->name.find("sphere") != std::string::npos){
+    this->compute_normals_sphere(cloud);
+  }else if(cloud->name.find("Spectralon") != std::string::npos || cloud->name.find("spectralon") != std::string::npos){
+    this->compute_normals_planFitting(cloud);
   }else{
     /*#ifdef PCL_FUNCTIONS_H
     pcl_functions pclManager;
-    pclManager.compute_normals_PCL(subset);
+    pclManager.compute_normals_PCL(cloud);
     #endif*/
   }
 
   //---------------------------
 }
-void Attribut::compute_normals_Hough(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_Hough(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
 
   int K = 100;
   int T = 1000;
@@ -457,17 +511,17 @@ void Attribut::compute_normals_Hough(Subset* subset){
 
   //---------------------------
   float duration = toc();
-  string log = "Normal for " +  subset->name + " computed " + to_string(duration) + " ms";
+  string log = "Normal for " +  cloud->name + " computed " + to_string(duration) + " ms";
   console.AddLog("#", log);
 }
-void Attribut::compute_normals_sphere(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<float>& dist = subset->R;
+void Attribut::compute_normals_sphere(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<float>& dist = cloud->R;
   tic();
   //---------------------------
 
   //Check data
-  if(dist.size() == 0) {compute_Distances(subset);}
+  if(dist.size() == 0) {compute_Distances(cloud);}
 
   //Search for nearest point
   float distm, Xm, Ym, Zm;
@@ -482,7 +536,7 @@ void Attribut::compute_normals_sphere(Subset* subset){
   }
 
   //Determine the center of the sphere
-  vec3 Center = fitManager->Sphere_FindCenter(subset);
+  vec3 Center = fitManager->Sphere_FindCenter(cloud);
 
   //Compute normals
   vector<vec3> N(XYZ.size());
@@ -491,17 +545,17 @@ void Attribut::compute_normals_sphere(Subset* subset){
       N[i][j] = (XYZ[i][j] - Center[j]) / sphereRadius;
     }
   }
-  subset->N = N;
+  cloud->Nxyz = N;
 
 
   //---------------------------
   float duration = toc();
-  string log = "Normal for " +  subset->name + " computed " + to_string(duration) + " ms";
+  string log = "Normal for " +  cloud->name + " computed " + to_string(duration) + " ms";
   console.AddLog("#", log);
 }
-void Attribut::compute_normals_planXaxis(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_planXaxis(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
   vec3 norm, Point;
   N.clear();
   //-------------------------
@@ -519,9 +573,9 @@ void Attribut::compute_normals_planXaxis(Subset* subset){
 
   //-------------------------
 }
-void Attribut::compute_normals_planYaxis(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_planYaxis(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
   vec3 norm, Point;
   N.clear();
   //-------------------------
@@ -539,9 +593,9 @@ void Attribut::compute_normals_planYaxis(Subset* subset){
 
   //-------------------------
 }
-void Attribut::compute_normals_planZaxis(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_planZaxis(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
   vec3 norm, Point;
   N.clear();
   //-------------------------
@@ -559,9 +613,9 @@ void Attribut::compute_normals_planZaxis(Subset* subset){
 
   //-------------------------
 }
-void Attribut::compute_normals_planFitting(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_planFitting(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
   tic();
   //-------------------------
 
@@ -593,19 +647,19 @@ void Attribut::compute_normals_planFitting(Subset* subset){
 
 
   //Reoriente normal in the origin direction
-  this->compute_normals_reorientToOrigin(subset);
+  this->compute_normals_reorientToOrigin(cloud);
 
   //---------------------------
   float duration = toc();
-  string log = "Normal for " +  subset->name + " computed " + to_string(duration) + " ms";
+  string log = "Normal for " +  cloud->name + " computed " + to_string(duration) + " ms";
   console.AddLog("#", log);
 }
 void Attribut::compute_normals_invert(){
   if(!sceneManager->get_is_list_empty()){
-    Cloud* cloud = sceneManager->get_selected_cloud();
-    Subset* subset = cloud->subset_selected;
-    Subset* subset_init = sceneManager->get_subset_selected_init();
-    vector<vec3>& normals = subset->N;
+    Collection* collection = sceneManager->get_selected_collection();
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    Cloud* list_obj_init = (Cloud*)collection->get_obj_selected_init();
+    vector<vec3>& normals = cloud->Nxyz;
     //---------------------------
 
     for(int i=0; i<normals.size(); i++){
@@ -613,14 +667,14 @@ void Attribut::compute_normals_invert(){
         normals[i][j] = -normals[i][j];
       }
     }
-    subset_init->N = normals;
+    list_obj_init->Nxyz = normals;
 
     //---------------------------
   }
 }
-void Attribut::compute_normals_reorientToOrigin(Subset* subset){
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec3>& N = subset->N;
+void Attribut::compute_normals_reorientToOrigin(Cloud* cloud){
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec3>& N = cloud->Nxyz;
   //---------------------------5
 
   float dist_XYZ, dist_N;
@@ -637,9 +691,9 @@ void Attribut::compute_normals_reorientToOrigin(Subset* subset){
 
   //---------------------------
 }
-void Attribut::compute_checkForNan(Subset* subset){
-  vector<vec3>& N = subset->N;
-  vector<float>& cosIt = subset->cosIt;
+void Attribut::compute_checkForNan(Cloud* cloud){
+  vector<vec3>& N = cloud->Nxyz;
+  vector<float>& cosIt = cloud->cosIt;
   vector<int> idx;
   //---------------------------
 
@@ -654,18 +708,18 @@ void Attribut::compute_checkForNan(Subset* subset){
   }
 
   //---------------------------
-  this->make_supressPoints(subset, idx);
+  this->make_supressPoints(cloud, idx);
 }
 
 //Intensity
 void Attribut::compute_intensityInversion(){
   if(!sceneManager->get_is_list_empty()){
-    Cloud* cloud = sceneManager->get_selected_cloud();
-    Subset* subset = cloud->subset_selected;
+    Collection* collection = sceneManager->get_selected_collection();
+    Cloud* cloud = (Cloud*)collection->selected_obj;
     //---------------------------
 
-    if(subset->I.size() != 0){
-      vector<float>& Is = subset->I;
+    if(cloud->I.size() != 0){
+      vector<float>& Is = cloud->I;
 
       for(int i=0; i<Is.size(); i++){
         Is[i] = 1 - Is[i];
@@ -675,13 +729,16 @@ void Attribut::compute_intensityInversion(){
     //---------------------------
   }
 }
-void Attribut::compute_colorToIntensity(Subset* subset){
-  vector<float>& Is_obj = subset->I;
-  vector<vec4>& RGB = subset->RGB;
-  Is_obj.clear();
+void Attribut::compute_colorToIntensity(Cloud* cloud){
+  vector<float>& Is_obj = cloud->I;
+  vector<vec4>& RGB = cloud->rgb;
   //---------------------------
 
-  if(subset->has_color){
+  //Clear vector
+  Is_obj.clear();
+
+  //Convert color into intensity
+  if(cloud->has_color){
     for(int i=0; i<RGB.size(); i++){
       float I = (RGB[i].x + RGB[i].y + RGB[i].z) / 3;
       Is_obj.push_back(I);
@@ -690,8 +747,24 @@ void Attribut::compute_colorToIntensity(Subset* subset){
 
   //---------------------------
 }
-void Attribut::fct_convert255to2048(Subset* subset){
-  vector<float>& Is = subset->I;
+void Attribut::compute_intensityToColor(Cloud* cloud){
+  vector<float>& Is = cloud->I;
+  vector<vec4>& RGB = cloud->rgb;
+  //---------------------------
+
+  //Clear vector
+  RGB.clear();
+
+  //Convert intensity into color
+  for(int i=0; i<Is.size(); i++){
+    vec4 new_color = vec4(Is[i], Is[i], Is[i], 1.0f);
+    RGB.push_back(new_color);
+  }
+
+  //---------------------------
+}
+void Attribut::fct_convert255to2048(Cloud* cloud){
+  vector<float>& Is = cloud->I;
   //-------------------------
 
   for (int i=0; i<Is.size(); i++){
@@ -699,12 +772,12 @@ void Attribut::fct_convert255to2048(Subset* subset){
   }
 
   //-------------------------
-  sceneManager->update_subset_IntensityToColor(subset);
-  sceneManager->update_subset_color(subset);
+  //sceneManager->update_subset_IntensityToColor(cloud);
+  gpuManager->update_buffer_color(cloud);
 }
-void Attribut::fct_convert2048to255(Subset* subset){
+void Attribut::fct_convert2048to255(Cloud* cloud){
   static bool I_2048 = false;
-  vector<float>& Is = subset->I;
+  vector<float>& Is = cloud->I;
   //-------------------------
 
   for (int i=0; i<Is.size(); i++){
@@ -712,33 +785,33 @@ void Attribut::fct_convert2048to255(Subset* subset){
   }
 
   //-------------------------
-  sceneManager->update_subset_IntensityToColor(subset);
-  sceneManager->update_subset_color(subset);
+  //sceneManager->update_subset_IntensityToColor(cloud);
+  gpuManager->update_buffer_color(cloud);
 }
 void Attribut::fct_moins(){
   if(!sceneManager->get_is_list_empty()){
-    Cloud* cloud = sceneManager->get_selected_cloud();
-    Subset* subset = cloud->subset_selected;
-    vector<float>& Is = subset->I;
-    vector<vec3>& XYZ = subset->xyz;
-    vector<vec4>& RGB = subset->RGB;
-    vector<float>& cosIt = subset->cosIt;
+    Collection* collection = sceneManager->get_selected_collection();
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    vector<float>& Is = cloud->I;
+    vector<vec3>& XYZ = cloud->xyz;
+    vector<vec4>& RGB = cloud->rgb;
+    vector<float>& cosIt = cloud->cosIt;
     //-------------------------
 
     cosIt.erase(cosIt.begin());
     cosIt.push_back(0.0f);
 
     //-------------------------
-    sceneManager->update_subset_IntensityToColor(subset);
-    sceneManager->update_subset_color(subset);
+    //sceneManager->update_subset_IntensityToColor(cloud);
+    gpuManager->update_buffer_color(cloud);
   }
 }
 void Attribut::fct_IsRange(vec2 range){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
-  Subset* subset_init = sceneManager->get_subset_selected_init();
-  vector<float>& Is = subset->I;
-  const vector<float>& Is_ini = subset_init->I;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
+  Cloud* list_obj_init = (Cloud*)collection->get_obj_selected_init();
+  vector<float>& Is = cloud->I;
+  const vector<float>& Is_ini = list_obj_init->I;
   //---------------------------
 
   for(int i=0; i<Is.size(); i++){
@@ -750,13 +823,13 @@ void Attribut::fct_IsRange(vec2 range){
   }
 
   //-------------------------
-  sceneManager->update_subset_IntensityToColor(subset);
-  sceneManager->update_subset_color(subset);
+  //sceneManager->update_subset_IntensityToColor(cloud);
+  gpuManager->update_buffer_color(cloud);
 }
 vec2 Attribut::get_IsRange(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
-  vector<float>& Is = subset->I;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
+  vector<float>& Is = cloud->I;
   //---------------------------
 
   if(!sceneManager->get_is_list_empty() && Is.size() != 0){

@@ -1,7 +1,7 @@
 #ifndef OCTREE_H
 #define OCTREE_H
 
-#include "../../Engine/Data/struct_glyph.h"
+#include "../../Scene/Base/struct_glyph.h"
 #include "../../common.h"
 
 
@@ -34,13 +34,13 @@ public:
   ~Octree();
 
 public:
-  void create_octree(Subset* subset);
-  void create_octree(Subset* subset, int level);
+  void create_octree(Cloud* cloud);
+  void create_octree(Cloud* cloud, int level);
   void remove_octree(Root* root);
 
   //Sub functions
   void remove_cube(Cube* cube);
-  void build_root(Subset* subset);
+  void build_root(Cloud* cloud);
   void build_octree(Cube* cube_parent);
   vector<vec3> compute_cube_location(vec3 min, vec3 max);
   vector<vec4> compute_cube_color(int size);

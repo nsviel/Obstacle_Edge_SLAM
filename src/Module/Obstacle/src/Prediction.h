@@ -24,13 +24,13 @@ public:
   //Subfunctions
   void remove_prediction_file(string path);
   void compute_prediction(string file_path);
-  void compute_prediction(Cloud* cloud, vector<string> path_vec);
-  void compute_groundTruth(Cloud* cloud, string path_file);
-  void compute_groundTruth(Cloud* cloud, vector<string> path_vec);
+  void compute_prediction(Collection* collection, vector<string> path_vec);
+  void compute_groundTruth(Collection* collection, string path_file);
+  void compute_groundTruth(Collection* collection, vector<string> path_vec);
 
   //JSON parsers
-  void parse_json_groundTruth(Subset* subset, string file_path);
-  void parse_json_prediction(Subset* subset, string file_path);
+  void parse_json_groundTruth(Cloud* cloud, string file_path);
+  void parse_json_prediction(Cloud* cloud, string file_path);
   int parse_frame_ID(string file_path);
 
   inline bool* get_is_new_pred(){return &is_new_pred;}

@@ -1,7 +1,7 @@
 #ifndef FILE_LAS_H
 #define FILE_LAS_H
 
-#include "../../Engine/Data/struct_data_file.h"
+#include "../../Scene/Base/struct_data_file.h"
 #include "../../common.h"
 
 

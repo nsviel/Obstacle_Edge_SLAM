@@ -11,19 +11,16 @@
 #include "../Node_load.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Interface/File/Directory.h"
-#include "../../Interface/File/Info.h"
-#include "../../Specific/fct_transtypage.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Specific/File/Directory.h"
+#include "../../Specific/File/Info.h"
+#include "../../Specific/Function/fct_transtypage.h"
 
 
 //Constructor / Destructor
-Saver::Saver(Node_load* node_load){
+Saver::Saver(){
   //---------------------------
-
-  Node_engine* node_engine = node_load->get_node_engine();
-
-  this->sceneManager = node_engine->get_sceneManager();
 
   this->ptsManager = new file_PTS();
   this->plyManager = new file_PLY();
@@ -38,23 +35,24 @@ Saver::Saver(Node_load* node_load){
 Saver::~Saver(){}
 
 //Main function
-bool Saver::save_cloud(Cloud* cloud, string path){
+bool Saver::save_collection(Collection* collection, string path){
   string format = get_format_from_path(path);
   bool success = false;
   //---------------------------
 
   //Check file format
   if(format.at(0) == '/' || format == "pts"){
-    success = ptsManager->Exporter(path, cloud);
+    success = ptsManager->Exporter(path, collection);
   }
   else if(format == "ply"){
     string format = "binary";
-    success = plyManager->Exporter_cloud(path, format, cloud);
+    success = plyManager->exporter_collection(collection, path, format);
+    say(success);
   }
 
   //Say if save is successfull
   if(!success){
-    console.AddLog("error", "Failing saving point cloud");
+    console.AddLog("error", "Failing saving point collection");
     return false;
   }
 
@@ -63,7 +61,7 @@ bool Saver::save_cloud(Cloud* cloud, string path){
   console.AddLog("ok", log);
   return true;
 }
-bool Saver::save_subset(Subset* subset, string format, string dirPath){
+bool Saver::save_subset(Cloud* cloud, string format, string dirPath){
   bool success = false;
   //---------------------------
 
@@ -72,16 +70,16 @@ bool Saver::save_subset(Subset* subset, string format, string dirPath){
 
   //Check file format
   if     (format == "pts"){
-    success = ptsManager->Exporter(dirPath, subset);
+    success = ptsManager->Exporter(dirPath, cloud);
   }
   else if(format == "ply"){
     string ply_format = "binary";
-    success = plyManager->Exporter_subset(dirPath, ply_format, subset);
+    success = plyManager->Exporter_subset(dirPath, ply_format, cloud);
   }
 
   //Say if save is successfull
   if(!success){
-    console.AddLog("error", "Failing saving point cloud");
+    console.AddLog("error", "Failing saving object");
     return false;
   }
 
@@ -90,7 +88,7 @@ bool Saver::save_subset(Subset* subset, string format, string dirPath){
   console.AddLog("ok", log);
   return true;
 }
-bool Saver::save_subset(Subset* subset, string format, string dirPath, string fileName){
+bool Saver::save_subset(Cloud* cloud, string format, string dirPath, string fileName){
   bool success = false;
   //---------------------------
 
@@ -99,16 +97,16 @@ bool Saver::save_subset(Subset* subset, string format, string dirPath, string fi
 
   //Check file format
   if     (format == "pts"){
-    success = ptsManager->Exporter(dirPath, subset);
+    success = ptsManager->Exporter(dirPath, cloud);
   }
   else if(format == "ply"){
     string ply_format = "binary";
-    success = plyManager->Exporter_subset(dirPath, ply_format, subset, fileName);
+    success = plyManager->Exporter_subset(dirPath, ply_format, cloud, fileName);
   }
 
   //Say if save is successfull
   if(!success){
-    console.AddLog("error", "Failing saving point cloud");
+    console.AddLog("error", "Failing saving object");
     return false;
   }
 
@@ -117,7 +115,7 @@ bool Saver::save_subset(Subset* subset, string format, string dirPath, string fi
   console.AddLog("ok", log);
   return true;
 }
-bool Saver::save_subset_silent(Subset* subset, string format, string dirPath){
+bool Saver::save_subset_silent(Cloud* cloud, string format, string dirPath){
   bool success = false;
   //---------------------------
 
@@ -126,31 +124,31 @@ bool Saver::save_subset_silent(Subset* subset, string format, string dirPath){
 
   //Check file format
   if     (format == "pts"){
-    success = ptsManager->Exporter(dirPath, subset);
+    success = ptsManager->Exporter(dirPath, cloud);
   }
   else if(format == "ply"){
     string ply_format = "binary";
-    success = plyManager->Exporter_subset(dirPath, ply_format, subset);
+    success = plyManager->Exporter_subset(dirPath, ply_format, cloud);
   }
 
   //Say if save is successfull
   if(!success){
-    console.AddLog("error", "Failing saving point cloud");
+    console.AddLog("error", "Failing saving object");
     return false;
   }
 
   //---------------------------
   return true;
 }
-bool Saver::save_set_silent(Cloud* cloud, int ID, string path, int nb){
+bool Saver::save_set_silent(Collection* collection, int ID, string path, int nb){
   bool success = false;
   //---------------------------
 
-  success = plyManager->Exporter_set(path, "binary", cloud, ID, nb);
+  success = plyManager->Exporter_set(path, "binary", collection, ID, nb);
 
   //Say if save is successfull
   if(!success){
-    console.AddLog("error", "Failing saving point cloud set");
+    console.AddLog("error", "Failing saving collection");
     return false;
   }
 

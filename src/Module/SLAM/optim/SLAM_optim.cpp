@@ -5,8 +5,8 @@
 #include "../src/SLAM.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Specific/fct_math.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 
 
 //Constructor / Destructor
@@ -14,8 +14,9 @@ SLAM_optim::SLAM_optim(SLAM* slam){
   //---------------------------
 
   Node_engine* node_engine = slam->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->slam_optim_gn = new SLAM_optim_gn(slam);
 
   //---------------------------
@@ -32,9 +33,9 @@ void SLAM_optim::update_configuration(){
 
   //---------------------------
 }
-void SLAM_optim::compute_optimization(Cloud* cloud, int subset_ID){
-  Frame* frame = sceneManager->get_frame_byID(cloud, subset_ID);
-  Frame* frame_m1 = sceneManager->get_frame_byID(cloud, subset_ID-1);
+void SLAM_optim::compute_optimization(Collection* collection, int subset_ID){
+  Frame* frame = collection->get_frame_byID(subset_ID);
+  Frame* frame_m1 = collection->get_frame_byID(subset_ID-1);
   //---------------------------
 
   if(frame->ID > 0){

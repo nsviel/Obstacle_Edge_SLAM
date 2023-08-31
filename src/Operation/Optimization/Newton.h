@@ -2,7 +2,7 @@
 #define Newton_H
 
 #include "SpeudoInverse.h"
-#include "../../Engine/Data/struct_misc.h"
+#include "../../Module/Registration/struct_misc.h"
 #include "../../common.h"
 
 #include <Eigen/Dense>
@@ -19,7 +19,7 @@ public:
 public:
   //Newton methods
   void init(vector<vec3>& XYZ_1, vector<bool>& DOF);
-  vector<float> algo_Newton(Cloud* cloud_P, Cloud* cloud_Q, vector<bool>& DOF, vector<Uplet> idx);
+  vector<float> algo_Newton(Collection* cloud_P, Collection* cloud_Q, vector<bool>& DOF, vector<Uplet> idx);
   vector<float> extractParameters(vector<bool>& DOF);
 
   //Math functions

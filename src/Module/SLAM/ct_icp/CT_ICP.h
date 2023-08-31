@@ -51,13 +51,13 @@ public:
   ~CT_ICP();
 
 public:
-  void algo(Cloud* cloud);
-	void algo(Subset* subset);
+  void algo(Collection* collection);
+	void algo(Cloud* cloud);
 	void reset();
 
 private:
 	//Algo functions
-	void do_truc(Subset* subset, vector<Point3D>& frame);
+	void do_truc(Cloud* cloud, vector<Point3D>& frame);
 	void update_voxelMap(vector<Point3D>& frame);
 
 	//Subfunctions

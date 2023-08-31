@@ -4,11 +4,12 @@
 #include "../Module_obstacle.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Engine/Scene/Configuration.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
+#include "../../../Engine/Core/Configuration.h"
 
-#include "../../../Interface/File/Directory.h"
-#include "../../../Interface/File/Info.h"
+#include "../../../Specific/File/Directory.h"
+#include "../../../Specific/File/Info.h"
 
 #include <jsoncpp/json/value.h>
 #include <jsoncpp/json/json.h>
@@ -22,9 +23,10 @@ Prediction::Prediction(Module_obstacle* module){
 
   Node_engine* node_engine = module->get_node_engine();
   Configuration* configManager = module->get_configManager();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->fileManager = module->get_fileManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
 
   this->is_new_pred = false;
   this->with_delete_pred_file = false;
@@ -56,34 +58,35 @@ bool* Prediction::runtime_prediction(){
 
 //Subfunctions
 void Prediction::compute_prediction(string path){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  if(cloud == nullptr){
+  Collection* collection = sceneManager->get_selected_collection();
+  //---------------------------
+
+  if(collection == nullptr){
     return;
   }
-  //---------------------------
 
   //Retrieve prediction frame ID
   int frame_ID = parse_frame_ID(path);
 
-  //For the subset with same name
-  for(int i=0; i<cloud->subset.size(); i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
+  //For the cloud with same name
+  for(int i=0; i<collection->list_obj.size(); i++){
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
 
-    if(subset->ID == frame_ID){
-      this->parse_json_prediction(subset, path);
+    if(cloud->ID == frame_ID){
+      this->parse_json_prediction(cloud, path);
       this->remove_prediction_file(path);
       this->is_new_pred = true;
 
-      string log = "Prediction - file " + path + " parsed to " + subset->name;
+      string log = "Prediction - file " + path + " parsed to " + cloud->name;
       console.AddLog("ok", log);
-      break;
+      return;
     }
   }
 
   //---------------------------
+  cout<<"[error] prediction -> no associated cloud"<<endl;
 }
-void Prediction::compute_prediction(Cloud* cloud, vector<string> path_vec){
-  if(cloud == nullptr) return;
+void Prediction::compute_prediction(Collection* collection, vector<string> path_vec){
   //---------------------------
 
   for(int i=0; i<path_vec.size(); i++){
@@ -92,39 +95,45 @@ void Prediction::compute_prediction(Cloud* cloud, vector<string> path_vec){
     //Retrieve prediction frame ID
     int frame_ID = parse_frame_ID(path_file);
 
-    //For the subset with same name
-    for(int j=0; j<cloud->subset.size(); j++){
-      Subset* subset = sceneManager->get_subset(cloud, j);
+    //For the cloud with same name
+    bool has_been_found = false;
+    for(int j=0; j<collection->list_obj.size(); j++){
+      Cloud* cloud = (Cloud*)collection->get_obj(j);
 
-      if(subset->ID == frame_ID){
-        this->parse_json_prediction(subset, path_file);
+      if(cloud->ID == frame_ID){
+        this->parse_json_prediction(cloud, path_file);
+        has_been_found = true;
         break;
       }
+    }
+
+    if(has_been_found == false){
+      cout<<"[error] prediction -> no associated cloud "<<frame_ID<<endl;
     }
   }
 
   //---------------------------
 }
-void Prediction::compute_groundTruth(Cloud* cloud, string path_file){
-  if(cloud == nullptr) return;
+void Prediction::compute_groundTruth(Collection* collection, string path_file){
+  if(collection == nullptr) return;
   //---------------------------
 
   //Retrieve prediction frame ID
   int frame_ID = parse_frame_ID(path_file);
 
-  //For the subset with same name
-  for(int i=0; i<cloud->subset.size(); i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
+  //For the cloud with same name
+  for(int i=0; i<collection->list_obj.size(); i++){
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
 
-    if(subset->ID == frame_ID){
-      this->parse_json_groundTruth(subset, path_file);
+    if(cloud->ID == frame_ID){
+      this->parse_json_groundTruth(cloud, path_file);
     }
   }
 
   //---------------------------
 }
-void Prediction::compute_groundTruth(Cloud* cloud, vector<string> path_vec){
-  if(cloud == nullptr) return;
+void Prediction::compute_groundTruth(Collection* collection, vector<string> path_vec){
+  if(collection == nullptr) return;
   //---------------------------
 
   for(int i=0; i<path_vec.size(); i++){
@@ -133,12 +142,12 @@ void Prediction::compute_groundTruth(Cloud* cloud, vector<string> path_vec){
     //Retrieve prediction frame ID
     int frame_ID = parse_frame_ID(path_file);
 
-    //For the subset with same name
-    for(int j=0; j<cloud->subset.size(); j++){
-      Subset* subset = sceneManager->get_subset(cloud, j);
+    //For the cloud with same name
+    for(int j=0; j<collection->list_obj.size(); j++){
+      Cloud* cloud = (Cloud*)collection->get_obj(j);
 
-      if(subset->ID == frame_ID){
-        this->parse_json_groundTruth(subset, path_file);
+      if(cloud->ID == frame_ID){
+        this->parse_json_groundTruth(cloud, path_file);
       }
     }
   }
@@ -154,8 +163,8 @@ void Prediction::remove_prediction_file(string path){
 }
 
 //JSON parsers
-void Prediction::parse_json_groundTruth(Subset* subset, string path_file){
-  Data_pred* detection_gt = &subset->detection;
+void Prediction::parse_json_groundTruth(Cloud* cloud, string path_file){
+  /*Data_pred* detection_gt = &cloud->detection;
   //---------------------------
 
   //Reset all values
@@ -200,18 +209,18 @@ void Prediction::parse_json_groundTruth(Subset* subset, string path_file){
     detection_gt->position.push_back(position);
     detection_gt->dimension.push_back(dimension);
     detection_gt->heading.push_back(heading);
-  }
+  }*/
 
   //---------------------------
 }
-void Prediction::parse_json_prediction(Subset* subset, string path_file){
+void Prediction::parse_json_prediction(Cloud* cloud, string path_file){
   //---------------------------
-
+  /*
   // Clear old data
-  subset->detection.name.clear();
-  subset->detection.position.clear();
-  subset->detection.dimension.clear();
-  subset->detection.heading.clear();
+  cloud->detection.name.clear();
+  cloud->detection.position.clear();
+  cloud->detection.dimension.clear();
+  cloud->detection.heading.clear();
 
   //Parse prediction json file
   std::ifstream ifs(path_file);
@@ -244,11 +253,11 @@ void Prediction::parse_json_prediction(Subset* subset, string path_file){
     float heading = json_head.asFloat();
 
     //Store all data
-    subset->detection.name.push_back(name);
-    subset->detection.position.push_back(position);
-    subset->detection.dimension.push_back(dimension);
-    subset->detection.heading.push_back(heading);
-  }
+    cloud->detection.name.push_back(name);
+    cloud->detection.position.push_back(position);
+    cloud->detection.dimension.push_back(dimension);
+    cloud->detection.heading.push_back(heading);
+  }*/
 
   //---------------------------
 }

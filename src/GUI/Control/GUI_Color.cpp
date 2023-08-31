@@ -8,10 +8,11 @@
 #include "../../Operation/Color/Heatmap.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
 
 #include "imgui/imgui.h"
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 
 //Constructor / Destructor
@@ -20,10 +21,11 @@ GUI_Color::GUI_Color(Node_gui* node_gui){
 
   Node_engine* node_engine = node_gui->get_node_engine();
   Node_operation* node_ope = node_gui->get_node_ope();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->colorManager = node_ope->get_colorManager();
   this->heatmapManager = node_ope->get_heatmapManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->colormapManager = heatmapManager->get_colormapManager();
 
   this->item_width = 100;
@@ -85,13 +87,13 @@ void GUI_Color::option_heatmap(){
 }
 void GUI_Color::heatmap_application(){
   ImGui::TextColored(ImVec4(0.4f,0.4f,0.4f,1.0f),"Heatmap");
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   //Apply heatMap on one cloud
   if(ImGui::Button("Apply", ImVec2(75,0))){
-    if(cloud != nullptr){
-      heatmapManager->make_cloud_heatmap(cloud);
+    if(collection != nullptr){
+      heatmapManager->make_col_heatmap(collection);
     }
   }
   ImGui::SameLine();
@@ -99,7 +101,7 @@ void GUI_Color::heatmap_application(){
   //Heatmap all clouds
   static bool heatAll = false;
   if(ImGui::Button("Apply all", ImVec2(75,0))){
-    if(cloud != nullptr){
+    if(collection != nullptr){
       heatAll = !heatAll;
       heatmapManager->make_heatmap_all(heatAll);
     }
@@ -133,10 +135,10 @@ void GUI_Color::heatmap_select_colormap(){
 
   //Automatic normalization
   bool* normalizeON = heatmapManager->get_is_normalization();
-  ImGui::Checkbox("fct_normalized", normalizeON);
+  ImGui::Checkbox("Normalized", normalizeON);
 
   //Manual normalization
-  if(*normalizeON){
+  if(*normalizeON == false){
     this->heatmap_mode_height();
     this->heatmap_mode_intensity();
   }

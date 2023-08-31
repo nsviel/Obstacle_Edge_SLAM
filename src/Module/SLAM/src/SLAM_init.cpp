@@ -5,7 +5,8 @@
 #include "SLAM.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 
 
 //Constructor / Destructor
@@ -13,8 +14,9 @@ SLAM_init::SLAM_init(SLAM* slam){
   //---------------------------
 
   Node_engine* node_engine = slam->get_node_engine();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->slam_map = slam->get_slam_map();
 
   //---------------------------
@@ -22,19 +24,19 @@ SLAM_init::SLAM_init(SLAM* slam){
 SLAM_init::~SLAM_init(){}
 
 //Main functions
-void SLAM_init::compute_initialization(Cloud* cloud, int subset_ID){
+void SLAM_init::compute_initialization(Collection* collection, int subset_ID){
   //---------------------------
 
-  this->init_frame_ID(cloud, subset_ID);
-  this->init_frame_ts(cloud, subset_ID);
-  this->init_frame_chain(cloud, subset_ID);
+  this->init_frame_ID(collection, subset_ID);
+  this->init_frame_ts(collection, subset_ID);
+  this->init_frame_chain(collection, subset_ID);
 
   //---------------------------
 }
 
 //Subfunctions
-void SLAM_init::init_frame_ID(Cloud* cloud, int subset_ID){
-  Frame* frame = sceneManager->get_frame_byID(cloud, subset_ID);
+void SLAM_init::init_frame_ID(Collection* collection, int subset_ID){
+  Frame* frame = collection->get_frame_byID(subset_ID);
   slamap* local_map = slam_map->get_local_map();
   //---------------------------
 
@@ -42,19 +44,19 @@ void SLAM_init::init_frame_ID(Cloud* cloud, int subset_ID){
   frame->ID = local_map->current_frame_ID;
   local_map->current_frame_ID++;
 
-  //Assign the current cloud to the selected one
-  local_map->linked_cloud_ID = cloud->ID;
+  //Assign the current collection to the selected one
+  local_map->linked_col_ID = collection->ID_col_perma;
 
   //---------------------------
 }
-void SLAM_init::init_frame_ts(Cloud* cloud, int subset_ID){
-  Subset* subset = sceneManager->get_subset_byID(cloud, subset_ID);
-  Frame* frame = &subset->frame;
-  vector<float>& ts = subset->ts;
+void SLAM_init::init_frame_ts(Collection* collection, int subset_ID){
+  Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
+  Frame* frame = &cloud->frame;
+  vector<float>& ts = cloud->ts;
   //---------------------------
 
   //Clear vector
-  subset->ts_n.clear();
+  cloud->ts_n.clear();
 
   //If there is timestamp data, normalize it
   if(ts.size() != 0){
@@ -69,24 +71,24 @@ void SLAM_init::init_frame_ts(Cloud* cloud, int subset_ID){
     //Normalization
     for(int i=0; i<ts.size(); i++){
       double ts_n = (ts[i] - ts_min) / (ts_max - ts_min);
-      subset->ts_n.push_back(ts_n);
+      cloud->ts_n.push_back(ts_n);
     }
   }
   //If there is no timestamp data, create synthetic one
   else{
     console.AddLog("error" ,"[SLAM] No timestamp");
-    for(int i=0; i<subset->xyz.size(); i++){
-      double ts_n = i / subset->xyz.size();
-      subset->ts_n.push_back(ts_n);
+    for(int i=0; i<cloud->xyz.size(); i++){
+      double ts_n = i / cloud->xyz.size();
+      cloud->ts_n.push_back(ts_n);
     }
   }
 
   //---------------------------
 }
-void SLAM_init::init_frame_chain(Cloud* cloud, int subset_ID){
-  Frame* frame_m0 = sceneManager->get_frame_byID(cloud, subset_ID);
-  Frame* frame_m1 = sceneManager->get_frame_byID(cloud, subset_ID-1);
-  Frame* frame_m2 = sceneManager->get_frame_byID(cloud, subset_ID-2);
+void SLAM_init::init_frame_chain(Collection* collection, int subset_ID){
+  Frame* frame_m0 = collection->get_frame_byID(subset_ID);
+  Frame* frame_m1 = collection->get_frame_byID(subset_ID-1);
+  Frame* frame_m2 = collection->get_frame_byID(subset_ID-2);
   slamap* local_map = slam_map->get_local_map();
   //---------------------------
 

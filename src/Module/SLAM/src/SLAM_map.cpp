@@ -3,14 +3,14 @@
 #include "SLAM.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
-#include "../../../Engine/Data/struct_voxelMap.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 
 #include "../../../Load/Node_load.h"
 #include "../../../Load/Processing/Pather.h"
 
-#include "../../../Specific/fct_math.h"
-#include "../../../Specific/fct_transtypage.h"
+#include "../../../Specific/Function/fct_math.h"
+#include "../../../Specific/Function/fct_transtypage.h"
 
 
 //Constructor / Destructor
@@ -19,8 +19,9 @@ SLAM_map::SLAM_map(SLAM* slam){
 
   Node_engine* node_engine = slam->get_node_engine();
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->patherManager = node_load->get_patherManager();
   this->slam_sampling = slam->get_slam_sampling();
 
@@ -56,19 +57,19 @@ void SLAM_map::update_configuration(){
 
   //---------------------------
 }
-void SLAM_map::update_map(Cloud* cloud, int subset_ID){
-  Subset* subset = sceneManager->get_subset_byID(cloud, subset_ID);
-  Frame* frame = sceneManager->get_frame_byID(cloud, subset_ID);
+void SLAM_map::update_map(Collection* collection, int subset_ID){
+  Cloud* cloud = (Cloud*)collection->get_obj_byID(subset_ID);
+  Frame* frame = collection->get_frame_byID(subset_ID);
   //---------------------------
 
   //Local map
-  vector<vec3> xyz_map = slam_sampling->sub_sampling_subset(subset, 0.2);
+  vector<vec3> xyz_map = slam_sampling->sub_sampling_subset(cloud, 0.2);
   this->add_pointToMap(local_map, xyz_map); //frame->xyz
   this->end_clearTooFarVoxels(local_map, frame->trans_e);
 
   //Cloud map
   if(with_local_cloud){
-    this->add_pointToCloud(local_cloud, subset);
+    this->add_pointToCloud(local_cloud, cloud);
     this->end_clearTooFarVoxels(local_cloud, frame->trans_e);
   }
 
@@ -131,11 +132,11 @@ void SLAM_map::add_pointToMap(slamap* map, vector<vec3>& xyz){
 
   //---------------------------
 }
-void SLAM_map::add_pointToMap(slamap* map, Subset* subset){
+void SLAM_map::add_pointToMap(slamap* map, Cloud* cloud){
   //---------------------------
 
-  for(int i=0; i<subset->xyz.size(); i++){
-    Eigen::Vector3d point(subset->xyz[i].x, subset->xyz[i].y, subset->xyz[i].z);
+  for(int i=0; i<cloud->xyz.size(); i++){
+    Eigen::Vector3d point(cloud->xyz[i].x, cloud->xyz[i].y, cloud->xyz[i].z);
 
     //Retrieve corresponding voxel
     int kx = static_cast<int>(point(0) / map->voxel_width);
@@ -177,18 +178,18 @@ void SLAM_map::add_pointToMap(slamap* map, Subset* subset){
 
   //---------------------------
 }
-void SLAM_map::add_pointToCloud(slamap* map, Subset* subset){
+void SLAM_map::add_pointToCloud(slamap* map, Cloud* cloud){
   Eigen::Vector3d point_3d;
   Eigen::Vector4d point_4d;
   //---------------------------
 
-  for(int i=0; i<subset->xyz.size(); i++){
+  for(int i=0; i<cloud->xyz.size(); i++){
     //Init data format
     float Is = 0;
-    if(subset->I.size() != 0){
-      Is = subset->I[i];
+    if(cloud->I.size() != 0){
+      Is = cloud->I[i];
     }
-    vec3 xyz = subset->xyz[i];
+    vec3 xyz = cloud->xyz[i];
     point_3d << xyz.x, xyz.y, xyz.z;
     point_4d << xyz.x, xyz.y, xyz.z, Is;
 
@@ -236,10 +237,10 @@ void SLAM_map::add_pointToCloud(slamap* map, Subset* subset){
   //---------------------------
 }
 void SLAM_map::save_local_cloud(){
-  Subset* subset = new Subset();
+  Cloud* cloud = new Cloud();
   //---------------------------
 
-  //Put local cloud data into a new subset
+  //Put local cloud data into a new cloud
   for(cloudMap_it it = local_cloud->cloud.begin(); it != local_cloud->cloud.end(); it++){
     vector<Eigen::Vector4d>& voxel_xyz = it.value();
     for(int i=0; i<voxel_xyz.size(); i++){
@@ -248,13 +249,13 @@ void SLAM_map::save_local_cloud(){
       vec3 xyz = vec3(point(0), point(1), point(2));
       vec4 rgb = vec4(point(3), point(3), point(3), 1);
 
-      subset->xyz.push_back(xyz);
-      subset->I.push_back(point(3));
+      cloud->xyz.push_back(xyz);
+      cloud->I.push_back(point(3));
     }
   }
 
-  //Save the new subset
-  patherManager->saving_subset(subset);
+  //Save the new cloud
+  patherManager->saving_subset(cloud);
 
   //---------------------------
 }

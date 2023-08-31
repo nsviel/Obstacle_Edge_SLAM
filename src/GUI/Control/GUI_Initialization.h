@@ -9,6 +9,7 @@ class Loader;
 class Pather;
 class Configuration;
 class Capture;
+class Transformation;
 
 struct tree_file{
   string          name;
@@ -30,14 +31,23 @@ public:
   ~GUI_Initialization();
 
 public:
+  //Main funxtion
   void init_gui();
   void update_configuration();
 
-  void operation_cloud(Cloud* cloud);
+  //Operation on loaded cloud
+  void operation_new_collection(Collection* collection);
   void operation_option();
 
+  //Spacific scene construction
+  void build_scene_1();
+  void build_scene_2();
+  void build_scene_3();
+
+  //Treenode construction
   void treeview();
   void construst_tree();
+  void construct_node_scene(vector<vector<tree_file*>>& nodes_path_vec);
   void construct_node(string path, vector<tree_file*>& nodes);
   void construct_node_root(vector<string>& vec_path, vector<tree_file*>& nodes);
   void display_node(tree_file* node, vector<tree_file*>& all_nodes);
@@ -52,19 +62,17 @@ private:
   Pather* pathManager;
   Configuration* configManager;
   Capture* captureManager;
+  Transformation* transformManager;
 
   vector<tree_file*> nodes_root;
-  vector<tree_file*> nodes_path_1;
-  vector<tree_file*> nodes_path_2;
-  vector<tree_file*> nodes_path_3;
+  vector<vector<tree_file*>> nodes_path_vec;
   vector<string> accepted_format;
+  vector<string> path_init_vec;
+  vector<string> path_init_file;
   bool with_remove_cloud;
   bool with_onthefly;
-  int cloud_scale;
+  float object_scale;
   string lidar_model;
-  string path_1;
-  string path_2;
-  string path_3;
 };
 
 #endif

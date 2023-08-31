@@ -1,14 +1,15 @@
 #include "Engine.h"
 
 #include "../Node_engine.h"
-#include "../Scene/Glyph/Glyphs.h"
-#include "../Scene/Glyph/Object.h"
-#include "../Scene/Scene.h"
-#include "../Scene/Configuration.h"
+#include "../OpenGL/Texture.h"
+#include "../GPU/GPU_data.h"
+#include "../Core/Configuration.h"
 #include "../Camera/Camera.h"
 
-#include "../../GUI/Node_gui.h"
-#include "../../GUI/Control/GUI.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Scene/Glyph/Glyphs.h"
+#include "../../Scene/Glyph/Object.h"
 
 
 //Constructor / Destructor
@@ -17,133 +18,99 @@ Engine::Engine(Node_engine* engine){
   //---------------------------
 
   Configuration* configManager = node_engine->get_configManager();
-  Node_gui* node_gui = node_engine->get_node_gui();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
-  this->glyphManager = node_engine->get_glyphManager();
-  this->guiManager = node_gui->get_guiManager();
-  this->objectManager = node_engine->get_objectManager();
+  this->gpuManager = new GPU_data();
+  this->sceneManager = node_scene->get_sceneManager();
+  this->glyphManager = node_scene->get_glyphManager();
+  this->objectManager = node_scene->get_objectManager();
   this->cameraManager = node_engine->get_cameraManager();
-
-  this->is_visualization = configManager->parse_json_b("window", "visualization");
+  this->texManager = node_engine->get_texManager();
+  this->data = Data::get_instance();
 
   //---------------------------
 }
 Engine::~Engine(){}
 
 //Program functions
-void Engine::runtime_scene(){
+void Engine::arcball_cam_lookat(){
+  Collection* collection = data->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
   //---------------------------
 
-  //Runtime cloud
-  this->runtime_draw_cloud();
-
-  //Runtime glyph
-  this->runtime_draw_glyph();
-
-  //Runtime camera
-  this->runtime_camera();
+  //Pour arcball camera view, center cam F to cloud com
+  if(cloud != nullptr){
+    vec3* cam_COM = cameraManager->get_cam_COM();
+    *cam_COM = cloud->COM;
+  }
 
   //---------------------------
 }
-void Engine::runtime_draw_cloud(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+
+//Cloud drawing function
+void Engine::draw_light(){
+  Collection* col_light = data->get_collection_byName("glyph", "light");
   //---------------------------
 
-  //By cloud
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
+  for(int i=0; i<col_light->list_obj.size(); i++){
+    Light_* light = (Light_*)*next(col_light->list_obj.begin(),i);
+    gpuManager->draw_object(light);
+  }
 
-    //By subset
-    if(cloud->visibility){
-      glPointSize(cloud->point_size);
-      for(int j=0; j<cloud->subset.size(); j++){
-        Subset* subset = *next(cloud->subset.begin(), j);
-        this->draw_mesh(subset, cloud->draw_type);
+  //---------------------------
+}
+void Engine::draw_untextured_cloud(){
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
+  //---------------------------
+
+  //By collection
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(),i);
+
+    //By cloud
+    if(collection->is_visible){
+      for(int j=0; j<collection->list_obj.size(); j++){
+        Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), j);
+
+        if(cloud->is_visible && cloud->has_texture == false){
+          gpuManager->draw_object(cloud);
+        }
+
       }
     }
   }
 
   //---------------------------
-  glBindVertexArray(0);
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
 }
-void Engine::runtime_draw_glyph(){
-  list<Cloud*>* list_cloud = sceneManager->get_list_cloud();
+void Engine::draw_untextured_glyph(){
   //---------------------------
 
-  //Draw glyph scene
-  objectManager->runtime_glyph_scene();
-
-  //Draw glyph subset
-  for(int i=0; i<list_cloud->size(); i++){
-    Cloud* cloud = *next(list_cloud->begin(),i);
-
-    if(cloud->visibility){
-      //All subset
-      objectManager->runtime_glyph_subset_all(cloud);
-
-      //Selected susbet
-      Subset* subset_sele = sceneManager->get_subset_byID(cloud, cloud->ID_selected);
-      objectManager->runtime_glyph_subset_selected(subset_sele);
-
-      //OOBB
-      Subset* subset_pred = sceneManager->get_subset_byID(cloud, cloud->ID_selected - 2);
-      objectManager->runtime_glyph_pred(subset_pred);
-    }
-
-  }
+  objectManager->draw_glyph_scene();
+  objectManager->draw_glyph_object();
 
   //---------------------------
 }
-void Engine::runtime_camera(){
-  Subset* subset = sceneManager->get_subset_selected();
+void Engine::draw_textured_cloud(){
+  list<Collection*>* list_collection = sceneManager->get_list_col_object();
+  bool with_texture = *texManager->get_with_texture();
   //---------------------------
 
-  if(subset != nullptr){
-    vec3* cam_COM = cameraManager->get_cam_COM();
-    *cam_COM = subset->COM;
-  }
+  //By collection
+  for(int i=0; i<list_collection->size(); i++){
+    Collection* collection = *next(list_collection->begin(),i);
 
-  //---------------------------
-}
+    //By cloud
+    if(collection->is_visible){
+      for(int j=0; j<collection->list_obj.size(); j++){
+        Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), j);
 
-//Subfunction
-void Engine::draw_mesh(Subset* subset, string draw_type){
-  //---------------------------
+        if(cloud->is_visible && cloud->has_texture && with_texture){
+          gpuManager->bind_texture(cloud->tex_ID);
+          gpuManager->draw_object(cloud);
+        }
 
-  if(subset->visibility){
-    // Bind the glyph VAO
-    glBindVertexArray(subset->VAO);
-    if(draw_type == "point"){
-      glDrawArrays(GL_POINTS, 0, subset->xyz.size());
+      }
     }
-    else if(draw_type == "line"){
-      glDrawArrays(GL_LINES, 0, subset->xyz.size());
-    }
-    else if(draw_type == "triangle"){
-      glDrawArrays(GL_TRIANGLES, 0, subset->xyz.size());
-    }
-    else if(draw_type == "triangle_strip"){
-      glDrawArrays(GL_TRIANGLE_STRIP, 0, subset->xyz.size());
-    }
-    else if(draw_type == "triangle_fan"){
-      glDrawArrays(GL_TRIANGLE_FAN, 0, subset->xyz.size());
-    }
-    else if(draw_type == "quad"){
-      glDrawArrays(GL_QUADS, 0, subset->xyz.size());
-    }
-    else if(draw_type == "quad_strip"){
-      glDrawArrays(GL_QUAD_STRIP, 0, subset->xyz.size());
-    }
-    else if(draw_type == "polygon"){
-      glDrawArrays(GL_POLYGON, 0, subset->xyz.size());
-    }
-    else{
-      glDrawArrays(GL_POINTS, 0, subset->xyz.size());
-    }
-    glBindVertexArray(0);
   }
 
   //---------------------------

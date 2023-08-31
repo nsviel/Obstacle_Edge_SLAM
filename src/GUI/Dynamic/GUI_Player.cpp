@@ -8,12 +8,13 @@
 #include "../../Operation/Dynamic/Visibility.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
 
 #include "../../Interface/Node_interface.h"
 #include "../../Interface/Capture/Capture.h"
 
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 
 //Constructor / Destructor
@@ -22,9 +23,10 @@ GUI_Player::GUI_Player(Node_gui* node_gui){
 
   Node_engine* node_engine = node_gui->get_node_engine();
   Node_operation* node_ope = node_gui->get_node_ope();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->node_interface = node_engine->get_node_interface();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->playerManager = node_ope->get_playerManager();
   this->onlineManager = node_ope->get_onlineManager();
   this->visibilityManager = node_ope->get_visibilityManager();
@@ -41,7 +43,7 @@ void GUI_Player::design_player(){
     //---------------------------
 
     this->design_run();
-    //this->player_onthefly();
+    this->player_onthefly();
     this->player_parameter();
 
     //---------------------------
@@ -54,7 +56,7 @@ void GUI_Player::design_run(){
   //Display set of player buttons
   this->player_button();
 
-  //Display only the ieme cloud
+  //Display only the ieme collection
   this->player_selection();
 
   //Range of displayed frames
@@ -69,30 +71,30 @@ void GUI_Player::design_run(){
 
 //Player action
 void GUI_Player::player_visibility(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
-  visibilityManager->compute_visibility_range_max(cloud);
+  visibilityManager->compute_visibility_range_max(collection);
   int* visibility_range = visibilityManager->get_visibility_range();
   int visibility_range_max = visibilityManager->get_visibility_range_max();
 
   ImGui::SetNextItemWidth(140);
   if(ImGui::DragInt("Display##666", visibility_range, 1, 1, visibility_range_max)){
-    if(cloud != nullptr){
-      playerManager->select_bySubsetID(cloud, cloud->ID_selected);
+    if(collection != nullptr){
+      playerManager->select_byObjectID(collection, collection->ID_obj_selected);
     }
   }
 
   //---------------------------
 }
 void GUI_Player::player_recording(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   //Recording button
   if (ImGui::Button(ICON_FA_CIRCLE "##37")){
-    if(cloud != nullptr){
-      playerManager->player_save(cloud);
+    if(collection != nullptr){
+      playerManager->player_save(collection);
     }
   }
 
@@ -109,7 +111,7 @@ void GUI_Player::player_recording(){
   //---------------------------
 }
 void GUI_Player::player_onthefly(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   ImGui::TextColored(ImVec4(0.4f,0.4f,0.4f,1.0f), "On the fly");
@@ -119,30 +121,30 @@ void GUI_Player::player_onthefly(){
   ImGui::Separator();
 }
 void GUI_Player::player_parameter(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   string* player_mode = playerManager->get_player_mode();
   //---------------------------
 
   //ImGui::TextColored(ImVec4(0.4f,0.4f,0.4f,1.0f), "Parameter");
 
-  //Restart to zero when arrive to the end of cloud frames
+  //Restart to zero when arrive to the end of collection frames
   if(*player_mode == "player"){
     bool* with_restart = playerManager->get_with_restart();
     ImGui::Checkbox("Loop when end", with_restart);
   }
 
-  //Setup cloud point size
-  if(cloud != nullptr){
-    int* point_size = &cloud->point_size;
+  //Setup collection point size
+  if(collection != nullptr){
+    /*int* point_size = &collection->draw_point_size;
     ImGui::SetNextItemWidth(50);
-    ImGui::SliderInt("Point size", point_size, 1, 20);
+    ImGui::SliderInt("Point size", point_size, 1, 20);*/
   }
 
   //---------------------------
   ImGui::Separator();
 }
 void GUI_Player::player_button(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   string* player_mode = playerManager->get_player_mode();
   //---------------------------
 
@@ -162,15 +164,15 @@ void GUI_Player::player_button(){
   //Player mode
   if(*player_mode == "player"){
     //Play button
-    this->button_player_play(cloud);
+    this->button_player_play(collection);
     ImGui::SameLine();
 
     //Pause button
-    this->button_player_pause(cloud);
+    this->button_player_pause(collection);
     ImGui::SameLine();
 
     //Stop button
-    this->button_player_stop(cloud);
+    this->button_player_stop(collection);
     ImGui::SameLine();
 
     //Frequency choice
@@ -182,15 +184,15 @@ void GUI_Player::player_button(){
   }
   //Online mode
   else if(*player_mode == "capture"){
-    this->button_capture_play(cloud);
+    this->button_capture_play(collection);
     ImGui::SameLine();
 
     //Pause button
-    this->button_capture_pause(cloud);
+    this->button_capture_pause(collection);
     ImGui::SameLine();
 
     //Stop button
-    this->button_capture_stop(cloud);
+    this->button_capture_stop(collection);
     ImGui::SameLine();
 
     //Connection port
@@ -200,24 +202,24 @@ void GUI_Player::player_button(){
   //---------------------------
 }
 void GUI_Player::player_selection(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
-  if(cloud != nullptr && cloud->nb_subset > 2){
-    Subset* subset = cloud->subset_selected;
-    Subset* subset_first = sceneManager->get_subset(cloud, 0);
-    Subset* subset_last = sceneManager->get_subset(cloud, cloud->nb_subset-1);
-    int subset_selected_ID = cloud->ID_selected;
+  if(collection != nullptr && collection->nb_obj > 2){
+    Object_* object = collection->selected_obj;
+    Object_* object_first = collection->get_obj(0);
+    Object_* object_last = collection->get_obj(collection->list_obj.size()-1);
+    int ID_obj = collection->ID_obj_selected;
 
     ImGui::SetNextItemWidth(140);
-    if(ImGui::SliderInt("##666", &subset_selected_ID, subset_first->ID, subset_last->ID)){
-      if(cloud != nullptr){
-        playerManager->select_bySubsetID(cloud, subset_selected_ID);
+    if(ImGui::SliderInt("##666", &ID_obj, object_first->ID, object_last->ID)){
+      if(collection != nullptr){
+        playerManager->select_byObjectID(collection, ID_obj);
       }
     }
     ImGui::SameLine();
-    if(subset != nullptr){
-      float ts =  subset->ts[0];
+    if(object != nullptr && object->obj_type == "cloud"){
+      float ts =  object->ts[0];
       ImGui::TextColored(ImVec4(0.0f,1.0f,0.0f,1.0f), "%.4f", ts);
     }
   }
@@ -240,14 +242,14 @@ void GUI_Player::player_pause(){
 }
 
 //Specific button function
-void GUI_Player::button_player_play(Cloud* cloud){
+void GUI_Player::button_player_play(Collection* collection){
   bool is_playing = *playerManager->get_player_isrunning();
   //---------------------------
 
   if(is_playing == false){
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(46, 75, 133, 255));
     if (ImGui::Button(ICON_FA_PLAY "##36")){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         playerManager->player_start();
       }
     }
@@ -255,7 +257,7 @@ void GUI_Player::button_player_play(Cloud* cloud){
   }else{
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(46, 133, 45, 255));
     if (ImGui::Button(ICON_FA_PLAY "##36")){
-      if(cloud != nullptr){
+      if(collection != nullptr){
         playerManager->player_pause();
       }
     }
@@ -264,7 +266,7 @@ void GUI_Player::button_player_play(Cloud* cloud){
 
   //---------------------------
 }
-void GUI_Player::button_player_pause(Cloud* cloud){
+void GUI_Player::button_player_pause(Collection* collection){
   bool is_paused = *playerManager->get_player_ispaused();
   //---------------------------
 
@@ -272,7 +274,7 @@ void GUI_Player::button_player_pause(Cloud* cloud){
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(46, 133, 45, 255));
   }
   if (ImGui::Button(ICON_FA_PAUSE "##37")){
-    if(cloud != nullptr){
+    if(collection != nullptr){
       playerManager->player_pause();
     }
   }
@@ -282,11 +284,11 @@ void GUI_Player::button_player_pause(Cloud* cloud){
 
   //---------------------------
 }
-void GUI_Player::button_player_stop(Cloud* cloud){
+void GUI_Player::button_player_stop(Collection* collection){
   //---------------------------
 
   if (ImGui::Button(ICON_FA_STOP "##37")){
-    if(cloud != nullptr){
+    if(collection != nullptr){
       playerManager->player_stop();
     }
   }
@@ -294,7 +296,7 @@ void GUI_Player::button_player_stop(Cloud* cloud){
   //---------------------------
 }
 
-void GUI_Player::button_capture_play(Cloud* cloud){
+void GUI_Player::button_capture_play(Collection* collection){
   Capture* captureManager = node_interface->get_captureManager();
   bool* is_capturing = captureManager->get_is_capturing();
   //---------------------------
@@ -315,7 +317,7 @@ void GUI_Player::button_capture_play(Cloud* cloud){
 
   //---------------------------
 }
-void GUI_Player::button_capture_pause(Cloud* cloud){
+void GUI_Player::button_capture_pause(Collection* collection){
   Capture* captureManager = node_interface->get_captureManager();
   bool is_capturing = *captureManager->get_is_capturing();
   bool is_finished = *captureManager->get_is_capture_finished();
@@ -334,12 +336,12 @@ void GUI_Player::button_capture_pause(Cloud* cloud){
 
   //---------------------------
 }
-void GUI_Player::button_capture_stop(Cloud* cloud){
+void GUI_Player::button_capture_stop(Collection* collection){
   Capture* captureManager = node_interface->get_captureManager();
   //---------------------------
 
   if (ImGui::Button(ICON_FA_STOP "##37")){
-    if(cloud != nullptr){
+    if(collection != nullptr){
       captureManager->stop_capture();
     }
   }

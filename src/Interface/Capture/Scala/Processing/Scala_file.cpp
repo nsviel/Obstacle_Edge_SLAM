@@ -1,10 +1,11 @@
 #include "Scala_file.h"
 
-#include "../../../../Interface/File/Zenity.h"
+#include "../../../../Specific/File/Zenity.h"
 #include "../../../../Load/Node_load.h"
 #include "../../../../Load/Processing/Loader.h"
 #include "../../../../Engine/Node_engine.h"
-#include "../../../../Engine/Scene/Scene.h"
+#include "../../../../Scene/Node_scene.h"
+#include "../../../../Scene/Data/Scene.h"
 
 //1 frame = 2 lidar scans = 2046 points
 //1024 points per scan with 25Hz rotation and 3 faisceau up and down
@@ -16,8 +17,9 @@ Scala_file::Scala_file(Node_engine* node_engine){
   //---------------------------
 
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->loaderManager = node_load->get_loaderManager();
 
   //---------------------------
@@ -28,8 +30,8 @@ void Scala_file::loading(string pathDir){
   //---------------------------
 
   vector<string> allpath = loading_allPathDir(pathDir);
-  vector<Cloud*> clouds = loading_allFile(allpath);
-  Cloud* cloud_scala = loading_reoganizeData(clouds);
+  vector<Collection*> clouds = loading_allFile(allpath);
+  Collection* cloud_scala = loading_reoganizeData(clouds);
   this->compute_relativeTimestamp(cloud_scala);
 
   //---------------------------
@@ -43,8 +45,8 @@ vector<string> Scala_file::loading_allPathDir(string pathDir){
   //---------------------------
   return allpath;
 }
-vector<Cloud*> Scala_file::loading_allFile(vector<string> allpath){
-  vector<Cloud*> clouds;
+vector<Collection*> Scala_file::loading_allFile(vector<string> allpath){
+  vector<Collection*> clouds;
   //---------------------------
 
   string format = "csv";
@@ -59,53 +61,53 @@ vector<Cloud*> Scala_file::loading_allFile(vector<string> allpath){
 
     if(format == "csv"){
       loaderManager->load_cloud_silent(path);
-      Cloud* cloud = loaderManager->get_createdcloud();
-      cloud->path = allpath[i] + "/" + "scala" + ".csv";
+      Collection* collection = (Collection*)loaderManager->get_created_collection();
+      collection->path_file_load = allpath[i] + "/" + "scala" + ".csv";
 
-      for(int j=0; j<cloud->subset.size(); j++){
-        Subset* subset = *next(cloud->subset.begin(), j);
+      for(int j=0; j<collection->list_obj.size(); j++){
+        Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), j);
 
-        for(int k=0; k<subset->RGB.size(); k++){
-          subset->RGB[k] = vec4(Red, Green, Blue, 1.0f);
+        for(int k=0; k<cloud->rgb.size(); k++){
+          cloud->rgb[k] = vec4(Red, Green, Blue, 1.0f);
         }
 
       }
 
-      clouds.push_back(cloud);
+      clouds.push_back(collection);
     }
   }
 
   //---------------------------
   return clouds;
 }
-Cloud* Scala_file::loading_reoganizeData(vector<Cloud*> clouds){
-  Cloud* cloud_scala = new Cloud();
-  cloud_scala->path = clouds[0]->path;
-  Subset* subset;
+Collection* Scala_file::loading_reoganizeData(vector<Collection*> clouds){
+  Collection* cloud_scala = new Collection();
+  cloud_scala->path_file_load = clouds[0]->path_file_load;
+  Cloud* cloud;
   //---------------------------
 
-  //ieme common subset
-  for(int i=0; i<clouds[0]->subset.size(); i++){
+  //ieme common cloud
+  for(int i=0; i<clouds[0]->list_obj.size(); i++){
 
     //We accumulate 2 frame in one
     if(i == 0 || i % 2 == 0){
-      subset = new Subset();
+      cloud = new Cloud();
     }
 
-    //jeme cloud
+    //jeme collection
     for(int j=0; j<clouds.size(); j++){
-      Subset* subset_scala = sceneManager->get_subset(clouds[j], i);
+      Cloud* subset_scala = (Cloud*)clouds[j]->get_obj(i);
 
       //keme points
       for(int k=0; k<subset_scala->xyz.size(); k++){
-        subset->xyz.push_back(subset_scala->xyz[k]);
-        subset->RGB.push_back(subset_scala->RGB[k]);
-        subset->ts.push_back(subset_scala->ts[k]);
+        cloud->xyz.push_back(subset_scala->xyz[k]);
+        cloud->rgb.push_back(subset_scala->rgb[k]);
+        cloud->ts.push_back(subset_scala->ts[k]);
       }
     }
 
     if(i % 2 == 0){
-      cloud_scala->subset.push_back(subset);
+      cloud_scala->list_obj.push_back(cloud);
     }
   }
 
@@ -114,19 +116,19 @@ Cloud* Scala_file::loading_reoganizeData(vector<Cloud*> clouds){
     delete clouds[i];
   }
 
-  //Load final cloud
+  //Load final collection
   loaderManager->load_cloud_creation(cloud_scala);
-  Cloud* cloud = loaderManager->get_createdcloud();
+  Collection* collection = (Collection*)loaderManager->get_created_collection();
 
   //---------------------------
-  return cloud;
+  return collection;
 }
-void Scala_file::compute_relativeTimestamp(Cloud* cloud){
+void Scala_file::compute_relativeTimestamp(Collection* collection){
   //---------------------------
 
   for(int i=0; i<1; i++){
-    Subset* subset = sceneManager->get_subset(cloud, i);
-    vector<float>& ts = subset->ts;
+    Cloud* cloud = (Cloud*)collection->get_obj(i);
+    vector<float>& ts = cloud->ts;
 
     float ts_cpt = ts[0];
     for(int j=0; j<ts.size(); j++){

@@ -11,18 +11,19 @@
 #include "../../Operation/Transformation/Filter.h"
 
 #include "../../Engine/Node_engine.h"
+#include "../../Scene/Node_scene.h"
 #include "../../Engine/Camera/Followup.h"
-#include "../../Engine/OpenGL/Renderer.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Engine/GPU/GPU_screenshot.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Engine/Core/Configuration.h"
 
 #include "../../Interface/Node_interface.h"
-#include "../../Interface/File/Path.h"
+#include "../../Specific/File/Path.h"
 #include "../../Interface/IO/Recorder.h"
 #include "../../Module/Node_module.h"
 
 #include "imgui/imgui.h"
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 
 //Constructor / Destructor
@@ -31,16 +32,17 @@ GUI_Online::GUI_Online(Node_gui* node_gui){
 
   Node_operation* node_ope = node_gui->get_node_ope();
   Node_interface* node_interface = node_gui->get_node_interface();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
   this->node_engine = node_gui->get_node_engine();
   this->node_module = node_engine->get_node_module();
 
   this->filterManager = node_ope->get_filterManager();
   this->onlineManager = node_ope->get_onlineManager();
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->followManager = node_engine->get_followManager();
   this->recordManager = node_interface->get_recordManager();
-  this->renderManager = node_engine->get_renderManager();
+  this->screenshotManager = node_engine->get_gpu_screenshot();
   this->colorManager = node_ope->get_colorManager();
   this->configManager = node_engine->get_configManager();
   this->playerManager = node_ope->get_playerManager();
@@ -98,8 +100,8 @@ void GUI_Online::design_online(){
 
 //Parameter function
 void GUI_Online::parameter_online(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
-  Subset* subset = cloud->subset_selected;
+  Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = (Cloud*)collection->selected_obj;
   //---------------------------
 
   //Module online stuff
@@ -199,7 +201,7 @@ void GUI_Online::parameter_recorder(){
       recordManager->select_path_frame();
     }
     ImGui::SameLine();
-    string path = get_path_abs(recordManager->get_path_frame());
+    string path = recordManager->get_path_frame();
     ImGui::TextColored(ImVec4(0.0f,1.0f,1.0f,1.0f), "%s", path.c_str());
   }
 
@@ -235,8 +237,10 @@ void GUI_Online::parameter_recorder(){
 
 //State function
 void GUI_Online::state_time(){
-  Subset* subset = sceneManager->get_subset_selected();
-  Frame* frame = &subset->frame;
+  /*Collection* collection = sceneManager->get_selected_collection();
+  Cloud* cloud = collection->get_sele
+  selected_obj->get_frame();
+  Frame* frame = collection->get_frame_selected();
   //---------------------------
 
   float time_operation = onlineManager->get_time_operation();
@@ -265,12 +269,12 @@ void GUI_Online::state_time(){
 
   bool with_save_image = *recordManager->get_with_save_frame();
   if(with_save_image){
-    float time_screenshot = renderManager->get_time_screenshot();
+    float time_screenshot = screenshotManager->get_time_screenshot();
     ImGui::Text("Save image");
     ImGui::SameLine();
     ImGui::TextColored(ImVec4(0.0f,1.0f,1.0f,1.0f), "%d ms", (int)time_screenshot);
   }
-
+*/
   //---------------------------
 }
 void GUI_Online::state_configuration(){

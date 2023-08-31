@@ -1,15 +1,18 @@
 #include "CoreGLengine.h"
-#include "Renderer.h"
 
-#include "Shader/Shader.h"
-#include "Shader/ShaderObject.h"
-
+#include "../Rendering/Renderer.h"
+#include "../GPU/GPU_screenshot.h"
+#include "../Node_engine.h"
+#include "../Shader/Shader.h"
+#include "../Shader/Base/Shader_obj.h"
 #include "../Camera/Camera.h"
 #include "../Camera/Viewport.h"
-#include "../Node_engine.h"
 #include "../Core/Argument.h"
 #include "../Core/Dimension.h"
-#include "../Scene/Configuration.h"
+#include "../Core/Engine.h"
+#include "../Core/Configuration.h"
+#include "../../Scene/Data/Data.h"
+#include "../../Specific/Function/fct_math.h"
 
 #include "../../GUI/Node_gui.h"
 #include "../../GUI/Control/GUI.h"
@@ -29,8 +32,9 @@ CoreGLengine::CoreGLengine(){
   //---------------------------
 
   this->configManager = new Configuration();
+  Data* data = Data::get_instance();
 
-  this->openglRunning = true;
+  this->loop_run = true;
   this->window = nullptr;
   this->flag_resized = false;
 
@@ -48,10 +52,10 @@ CoreGLengine::~CoreGLengine(){
   //---------------------------
 }
 
-//Init opengl stuff
+//Opengl stuff
 void CoreGLengine::arg(int argc, char* argv[]){
   Argument argManager(node_engine);
-  //---------------------------
+  //--------------geometric-------------
 
   argManager.process_arg(argc, argv);
 
@@ -60,14 +64,38 @@ void CoreGLengine::arg(int argc, char* argv[]){
 void CoreGLengine::init(){
   //---------------------------
 
-  this->init_OGL();
+  this->init_opengl();
   this->init_object();
   this->init_rendering();
 
   //---------------------------
   console.AddLog("ok" ,"Program initialized...");
 }
-void CoreGLengine::init_OGL(){
+void CoreGLengine::loop(){
+  bool is_timer = false;
+  //---------------------------
+  do{
+    //First pass
+    //---------------------------
+    this->loop_resizing();
+    renderManager->loop_rendering();
+
+    //GUI and end
+    //---------------------------
+    this->loop_gui();
+    this->loop_end();
+
+    //Time loop
+    auto t2 = high_resolution_clock::now();
+    this->time_loop = duration_cast<milliseconds>(t2 - t1).count();
+  }
+  while(loop_run);
+
+  //---------------------------
+}
+
+// Initialization stuff
+void CoreGLengine::init_opengl(){
   //---------------------------
 
   //Parametrization
@@ -82,7 +110,6 @@ void CoreGLengine::init_OGL(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,6);
   }
-  glfwWindowHint(GLFW_SAMPLES, 16);
   glfwWindowHint(GLFW_OPENGL_CORE_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
@@ -100,6 +127,13 @@ void CoreGLengine::init_OGL(){
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  // OpenGL face culling
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  //Enable shader point size setting
+  //glEnable(GL_PROGRAM_POINT_SIZE);
+
   //GLEW
   glewInit();
 
@@ -115,50 +149,21 @@ void CoreGLengine::init_object(){
   this->cameraManager = node_engine->get_cameraManager();
   this->viewportManager = node_engine->get_viewportManager();
   this->renderManager = node_engine->get_renderManager();
+  this->engineManager = node_engine->get_engineManager();
+  this->screenshotManager = node_engine->get_gpu_screenshot();
 
   //---------------------------
 }
 void CoreGLengine::init_rendering(){
   //---------------------------
 
-  renderManager->init_rendering_fbo_1();
-  renderManager->init_rendering_fbo_2();
-  renderManager->init_rendering_quad();
-  shaderManager->init();
+  dimManager->update();
+  shaderManager->init_shader();
 
   //---------------------------
 }
 
-void CoreGLengine::loop(){
-  //---------------------------
-
-  do{
-    auto t1 = high_resolution_clock::now();
-
-    //First pass
-    //---------------------------
-    this->loop_pass_1();
-    this->loop_drawScene();
-    this->loop_selection();
-
-    //Second pass
-    //---------------------------
-    this->loop_pass_2();
-    this->loop_drawScreen();
-
-    //GUI and end
-    //---------------------------
-    this->loop_gui();
-    this->loop_end();
-
-    //Time loop
-    auto t2 = high_resolution_clock::now();
-    this->time_loop = duration_cast<milliseconds>(t2 - t1).count();
-  }
-  while(openglRunning);
-
-  //---------------------------
-}
+// Loop stuff
 void CoreGLengine::loop_gui(){
   //---------------------------
 
@@ -170,70 +175,22 @@ void CoreGLengine::loop_gui(){
 
   //---------------------------
 }
-void CoreGLengine::loop_selection(){
-  //---------------------------
-
-  node_gui->loop_selection();
-
-  //---------------------------
-}
-void CoreGLengine::loop_pass_1(){
-  dimManager->update();
+void CoreGLengine::loop_resizing(){
   //---------------------------
 
   //Update things
+  dimManager->update();
   this->flag_resized = dimManager->get_is_resized();
+
   if(flag_resized){
-    renderManager->update_texture();
-    shaderManager->update();
+    renderManager->update_dim_texture();
+    shaderManager->update_shader();
   }
 
-  //Set FBO
-  renderManager->render_fbo_1();
-
-  //Set active shader
-  shaderManager->use("scene");
-  mat4 mvp = cameraManager->compute_cam_mvp();
-  ShaderObject* shader_scene = shaderManager->get_shader_scene();
-  shader_scene->setMat4("MVP", mvp);
-
-  //---------------------------
-}
-void CoreGLengine::loop_pass_2(){
-  //---------------------------
-
-  //Framebuffer pass 2
-  renderManager->render_fbo_2();
-
-  //Set active shader
-  shaderManager->use("screen");
-
-  //---------------------------
-}
-void CoreGLengine::loop_drawScene(){
-  //---------------------------
-
-  viewportManager->viewport_update(0);
+  //Camera & scene runtime
   cameraManager->input_cam_mouse();
   node_engine->runtime();
-
-  //---------------------------
-}
-void CoreGLengine::loop_drawScreen(){
-  //---------------------------
-
-  //Viewport
-  vec2 win_dim = dimManager->get_win_dim();
-  glViewport(0, 0, win_dim[0], win_dim[1]);
-
-  //Update OpenGL quad window
-  if(flag_resized){
-    renderManager->update_quad();
-  }
-  //Draw screen quad
-  else{
-    renderManager->render_quad();
-  }
+  node_gui->loop_selection();
 
   //---------------------------
 }
@@ -241,15 +198,33 @@ void CoreGLengine::loop_end(){
   //---------------------------
 
   //End, if needed, by a screenshot
-  renderManager->render_screenshot_online();
+  screenshotManager->render_screenshot_online();
 
-  //Window display stuff
-  glfwSwapBuffers(window);
-  glfwPollEvents();
+  //Compteur for measuring GPU usage
+  static vector<float> time_vec;
+  static int cpt = 0;
+  tic();
+
+  {
+    //Window display stuff
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+  }
+
+  float time = toc_ms();
+  if(false && cpt == 100){
+    float mean = fct_mean(time_vec);
+    cout<<"Mean time = "<<mean<< " ms" <<endl;
+    time_vec.clear();
+    cpt = 0;
+  }else{
+    time_vec.push_back(time);
+    cpt++;
+  }
 
   //Check for window termination
   if(glfwWindowShouldClose(window)){
-    openglRunning = false;
+    loop_run = false;
   }
 
   //---------------------------

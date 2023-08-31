@@ -1,6 +1,6 @@
 #include "file_PTS.h"
 
-#include "../../Interface/File/Info.h"
+#include "../../Specific/File/Info.h"
 
 
 //Constructor / Destructor
@@ -19,20 +19,20 @@ file_PTS::file_PTS(){
 file_PTS::~file_PTS(){}
 
 //Main load functions
-Data_file* file_PTS::Loader(string pathFile){
-  data_out = new Data_file();
+Data_file* file_PTS::Loader(string path){
+  Data_file* data_out = new Data_file();
   data_out->name = "";
-  data_out->path = pathFile;
+  data_out->path_file = path;
   //---------------------------
 
   //Initialization
   this->Loader_init();
-  bool FILE_hasHeader = check_header(pathFile);
-  int FILE_config = check_configuration(pathFile);
-  int FILE_size = check_size(pathFile, FILE_hasHeader);
+  bool FILE_hasHeader = check_header(path);
+  int FILE_config = check_configuration(path);
+  int FILE_size = check_size(path, FILE_hasHeader);
 
   //Read file
-  std::ifstream infile1(pathFile);
+  std::ifstream infile1(path);
   while(std::getline(infile1, line))
   {
     //If line empty break the while
@@ -47,25 +47,25 @@ Data_file* file_PTS::Loader(string pathFile){
     }
 
     //Retrieve data
-    this->Loader_data(FILE_config);
+    this->Loader_data(data_out, FILE_config);
   }
 
   //---------------------------
   return data_out;
 }
-Data_file* file_PTS::Loader(string pathFile, int lmin, int lmax){
-  data_out = new Data_file();
+Data_file* file_PTS::Loader(string path, int lmin, int lmax){
+  Data_file* data_out = new Data_file();
   //---------------------------
 
   //Initialization
   this->Loader_init();
-  bool FILE_hasHeader = check_header(pathFile);
-  int FILE_config = check_configuration(pathFile);
-  int FILE_size = check_size(pathFile, FILE_hasHeader);
+  bool FILE_hasHeader = check_header(path);
+  int FILE_config = check_configuration(path);
+  int FILE_size = check_size(path, FILE_hasHeader);
 
   //Read file
   int cpt = 0;
-  std::ifstream infile1(pathFile);
+  std::ifstream infile1(path);
   while (std::getline(infile1, line))
   {
     if(cpt >= lmin && cpt < lmax){
@@ -82,7 +82,7 @@ Data_file* file_PTS::Loader(string pathFile, int lmin, int lmax){
 
       //Retrieve data
       if(endParameters && endHeader){
-        this->Loader_data(FILE_config);
+        this->Loader_data(data_out, FILE_config);
       }
     }
     cpt++;
@@ -247,7 +247,7 @@ void file_PTS::Loader_configuration(){
   //---------------------------
   endParameters = true;
 }
-void file_PTS::Loader_data(int FILE_config){
+void file_PTS::Loader_data(Data_file* data_out, int FILE_config){
   std::istringstream iss(line);
   float x,y,z,r,g,b,I,nx,ny,nz;
   //---------------------------
@@ -266,32 +266,32 @@ void file_PTS::Loader_data(int FILE_config){
   }
 
   //Position data
-  data_out->location.push_back(vec3(x, y, z));
+  data_out->xyz.push_back(vec3(x, y, z));
 
   //Reflectance data
   if(hasIntensity){
     if(IdataFormat == 0){
-      data_out->intensity.push_back(I);
+      data_out->I.push_back(I);
     }else
     if(IdataFormat == 1){
-      data_out->intensity.push_back(I/255);
+      data_out->I.push_back(I/255);
     }else
     if(IdataFormat == 2){
-      data_out->intensity.push_back((I+2048)/4096);
+      data_out->I.push_back((I+2048)/4096);
     }
   }
 
   //Normal data
   if(hasNormal){
-    data_out->normal.push_back(vec3(nx, ny, nz));
+    data_out->Nxyz.push_back(vec3(nx, ny, nz));
   }
 
   //Color data
   if(hasColor){
-    data_out->color.push_back(vec4((r/255), (g/255), (b/255), 1.0f));
+    data_out->rgb.push_back(vec4((r/255), (g/255), (b/255), 1.0f));
     //if reflectance value is coded in RGB format
     if(hasIntensity == false && r == g && g == b){
-        data_out->intensity.push_back(r/255);
+        data_out->I.push_back(r/255);
         hasIntensity = true;
     }
   }
@@ -300,7 +300,7 @@ void file_PTS::Loader_data(int FILE_config){
 }
 
 //Main exporter functions
-bool file_PTS::Exporter(string path, Cloud* cloud){
+bool file_PTS::Exporter(string path, Collection* collection){
   //---------------------------
 
   //Create file
@@ -317,12 +317,12 @@ bool file_PTS::Exporter(string path, Cloud* cloud){
   file << fixed;
 
   //Data : xyz (R) (rgb) (nxnynz)
-  for(int i=0; i<cloud->nb_subset; i++){
-    Subset* subset = *next(cloud->subset.begin(), i);
-    vector<vec3>& XYZ = subset->xyz;
-    vector<vec4>& RGB = subset->RGB;
-    vector<vec3>& N = subset->N;
-    vector<float>& Is = subset->I;
+  for(int i=0; i<collection->nb_obj; i++){
+    Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), i);
+    vector<vec3>& XYZ = cloud->xyz;
+    vector<vec4>& RGB = cloud->rgb;
+    vector<vec3>& N = cloud->Nxyz;
+    vector<float>& Is = cloud->I;
 
     //Write in the file
     for(int i=0; i<XYZ.size(); i++){
@@ -330,7 +330,7 @@ bool file_PTS::Exporter(string path, Cloud* cloud){
       file << setprecision(precision) << XYZ[i].x <<" "<< XYZ[i].y <<" "<< XYZ[i].z ;
 
       //Intensity
-      if(subset->I.size() != 0){
+      if(cloud->I.size() != 0){
         if(export_IdataFormat == 0){
           file << setprecision(precision) <<" "<< Is[i];
         }
@@ -343,12 +343,12 @@ bool file_PTS::Exporter(string path, Cloud* cloud){
       }
 
       //Color
-      if(subset->has_color){
+      if(cloud->has_color){
         file << setprecision(0) <<" "<< RGB[i].x * 255 <<" "<< RGB[i].y * 255 <<" "<< RGB[i].z * 255;
       }
 
       //Normal
-      if(subset->N.size() != 0){
+      if(cloud->Nxyz.size() != 0){
         file << setprecision(precision) <<" "<< N[i].x <<" "<< N[i].y <<" "<< N[i].z;
       }
 
@@ -363,7 +363,7 @@ bool file_PTS::Exporter(string path, Cloud* cloud){
   //---------------------------
   return true;
 }
-bool file_PTS::Exporter(string path, Subset* subset){
+bool file_PTS::Exporter(string path, Cloud* cloud){
   //---------------------------
 
   //Create file
@@ -376,10 +376,10 @@ bool file_PTS::Exporter(string path, Subset* subset){
   }
 
   //Data : xyz (R) (rgb) (nxnynz)
-  vector<vec3>& XYZ = subset->xyz;
-  vector<vec4>& RGB = subset->RGB;
-  vector<vec3>& N = subset->N;
-  vector<float>& Is = subset->I;
+  vector<vec3>& XYZ = cloud->xyz;
+  vector<vec4>& RGB = cloud->rgb;
+  vector<vec3>& N = cloud->Nxyz;
+  vector<float>& Is = cloud->I;
 
   //Write in the file
   int precision = 6;
@@ -392,7 +392,7 @@ bool file_PTS::Exporter(string path, Subset* subset){
     file << setprecision(precision) << XYZ[i].x <<" "<< XYZ[i].y <<" "<< XYZ[i].z ;
 
     //Intensity
-    if(subset->I.size() != 0){
+    if(cloud->I.size() != 0){
       if(export_IdataFormat == 0){
         file << setprecision(precision) <<" "<< Is[i];
       }
@@ -405,12 +405,12 @@ bool file_PTS::Exporter(string path, Subset* subset){
     }
 
     //Color
-    if(subset->has_color){
+    if(cloud->has_color){
       file << setprecision(0) <<" "<< RGB[i].x * 255 <<" "<< RGB[i].y * 255 <<" "<< RGB[i].z * 255;
     }
 
     //Normal
-    if(subset->N.size() != 0){
+    if(cloud->Nxyz.size() != 0){
       file << setprecision(precision) <<" "<< N[i].x <<" "<< N[i].y <<" "<< N[i].z;
     }
 
@@ -424,9 +424,9 @@ bool file_PTS::Exporter(string path, Subset* subset){
 }
 
 //Checking functions
-bool file_PTS::check_header(string pathFile){
+bool file_PTS::check_header(string path){
   string line;
-  ifstream FILE(pathFile);
+  ifstream FILE(path);
   getline(FILE, line);
   //---------------------------
 
@@ -449,9 +449,9 @@ bool file_PTS::check_header(string pathFile){
   }
   return false;
 }
-int file_PTS::check_configuration(string pathFile){
+int file_PTS::check_configuration(string path){
   string line_loop;
-  ifstream FILE(pathFile);
+  ifstream FILE(path);
   //---------------------------
 
   //pass the first line
@@ -629,10 +629,10 @@ int file_PTS::check_configuration(string pathFile){
   }
   return config;
 }
-int file_PTS::check_size(string pathFile, bool FILE_hasHeader){
+int file_PTS::check_size(string path, bool FILE_hasHeader){
   //---------------------------
 
-  int FILE_size = get_file_nbPoint(pathFile);
+  int FILE_size = get_file_nbPoint(path);
   if(FILE_size > nbptMax){
     cout << "Too much points : "<< FILE_size << ">"<< nbptMax << endl;
   }

@@ -1,7 +1,7 @@
 #ifndef FILE_PTS_H
 #define FILE_PTS_H
 
-#include "../../Engine/Data/struct_data_file.h"
+#include "../../Scene/Base/struct_data_file.h"
 #include "../../common.h"
 
 #include <iomanip>
@@ -20,8 +20,8 @@ public:
   Data_file* Loader(string pathFile);
   Data_file* Loader(string pathFile, int lmin, int lmax);
 
+  bool Exporter(string pathFile, Collection* collection);
   bool Exporter(string pathFile, Cloud* cloud);
-  bool Exporter(string pathFile, Subset* subset);
 
   inline void set_IdataFormat(int value){this->IdataFormat = value;}
   inline void set_retrievingIntensity(bool value){this->retrieve_I = value;}
@@ -33,7 +33,7 @@ private:
   void Loader_init();
   void Loader_nbColumns();
   void Loader_configuration();
-  void Loader_data(int FILE_config);
+  void Loader_data(Data_file* data_out, int FILE_config);
 
   //Loader sub-functions
   bool check_header(string pathFile);
@@ -57,9 +57,6 @@ private:
   //Parameters
   int IdataFormat, export_IdataFormat;
   bool retrieve_I, retrieve_RGB, retrieve_N;
-
-  //Datatypes
-  Data_file* data_out;
 };
 
 #endif

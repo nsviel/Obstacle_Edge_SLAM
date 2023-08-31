@@ -3,35 +3,35 @@
 
 #include "../../common.h"
 
-class Node_operation;
 class Scene;
 class Attribut;
 class Colormap;
+class GPU_data;
 
 
 class Heatmap
 {
 public:
   //Constructor / Destructor
-  Heatmap(Node_operation* node_ope);
+  Heatmap();
   ~Heatmap();
 
 public:
   //Main functions
+  void make_col_heatmap(Collection* collection);
   void make_cloud_heatmap(Cloud* cloud);
-  void make_subset_heatmap(Subset* subset);
   void make_heatmap_all(bool heatAll);
 
   //Specific mode functions
-  void mode_height(Subset* subset);
-  void mode_intensity(Subset* subset);
-  void mode_distance(Subset* subset);
-  void mode_cosIt(Subset* subset);
-  void mode_It(Subset* subset);
+  void mode_height(Cloud* cloud);
+  void mode_intensity(Cloud* cloud);
+  void mode_distance(Cloud* cloud);
+  void mode_cosIt(Cloud* cloud);
+  void mode_It(Cloud* cloud);
 
   //Heatmap functions
-  void heatmap_set(Subset* subset, vector<float>& v_in);
-  void heatmap_unset(Subset* subset);
+  void heatmap_set(Cloud* cloud, vector<float>& v_in);
+  void heatmap_unset(Cloud* cloud);
 
   //Setters / Getters
   inline int* get_heatmap_mode(){return &heatmap_mode;}
@@ -45,6 +45,7 @@ private:
   Scene* sceneManager;
   Attribut* attribManager;
   Colormap* colormapManager;
+  GPU_data* gpuManager;
 
   vec2 range_norm;
   vec2 range_height;

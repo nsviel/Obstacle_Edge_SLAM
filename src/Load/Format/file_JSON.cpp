@@ -14,13 +14,13 @@ file_JSON::file_JSON(){
 }
 file_JSON::~file_JSON(){}
 
-void file_JSON::parse_json_obstacle(Cloud* cloud, vector<string> paths, string data){
+void file_JSON::parse_json_obstacle(Collection* collection, vector<string> paths, string data){
   //---------------------------
+/*
+  if(paths.size() != collection->list_obj.size()) return;
 
-  if(paths.size() != cloud->subset.size()) return;
-
-  for(int i=0; i<cloud->subset.size(); i++){
-    Subset* subset = *next(cloud->subset.begin(), i);
+  for(int i=0; i<collection->list_obj.size(); i++){
+    Cloud* cloud = (Cloud*)*next(collection->list_obj.begin(), i);
 
     //ieme json frame name
     for(int j=0; j<paths.size(); j++){
@@ -30,10 +30,10 @@ void file_JSON::parse_json_obstacle(Cloud* cloud, vector<string> paths, string d
       reader.parse(ifs, obj);
       string json_name = obj["frame_id"].asString();
 
-      if(subset->name == json_name){
+      if(cloud->name == json_name){
         //Make stuff
-        Data_pred* detection_gt = &subset->detection_gt;
-        Data_pred* detection = &subset->detection;
+        Data_pred* detection_gt = &cloud->detection_gt;
+        Data_pred* detection = &cloud->detection;
         const Json::Value& json_dete = obj["detections"];
 
         for (int i = 0; i < json_dete.size(); i++){
@@ -76,6 +76,6 @@ void file_JSON::parse_json_obstacle(Cloud* cloud, vector<string> paths, string d
       }
     }
   }
-
+*/
   //---------------------------
 }

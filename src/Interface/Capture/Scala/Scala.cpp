@@ -7,11 +7,12 @@
 #include "../../Node_interface.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Configuration.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Engine/Core/Configuration.h"
 #include "../../../Load/Node_load.h"
 #include "../../../Load/Processing/Extractor.h"
-#include "../../../Interface/File/Directory.h"
-#include "../../../Interface/File/Directory.h"
+#include "../../../Specific/File/Directory.h"
+#include "../../../Specific/File/Directory.h"
 
 #include "../../../../extern/cbor/json.hpp"
 
@@ -27,7 +28,7 @@ Scala::Scala(Node_interface* node_interface){
   Configuration* configManager = node_engine->get_configManager();
   string path_data = configManager->parse_json_s("parameter", "path_data");
 
-  this->extractManager = node_load->get_extractManager();
+  this->extractManager = new Extractor();
   this->path_scala = path_data + "scala/";
   this->is_capturing = false;
   this->run_capture = false;
@@ -66,7 +67,7 @@ void Scala::stop_watcher(){
 
   //---------------------------
 }
-void Scala::lidar_create_subset(Data_cap* udp_packet){
+void Scala::lidar_create_subset(Data_file* udp_packet){
   //Asynchroneous function (used by theaded watcher)
   //---------------------------
 

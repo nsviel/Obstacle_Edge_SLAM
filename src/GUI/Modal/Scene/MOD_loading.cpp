@@ -1,12 +1,13 @@
 #include "MOD_loading.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/Scene/Scene.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Scene/Data/Scene.h"
 
 #include "../../../Load/Node_load.h"
 #include "../../../Load/Processing/Pather.h"
 #include "../../../Load/Processing/Loader.h"
-#include "../../../Interface/File/Zenity.h"
+#include "../../../Specific/File/Zenity.h"
 
 #include "../../../Load/Format/file_PTS.h"
 #include "../../../Load/Format/file_PTX.h"
@@ -21,8 +22,9 @@ MOD_loading::MOD_loading(Node_engine* node_engine){
   //---------------------------
 
   Node_load* node_load = node_engine->get_node_load();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->loaderManager = node_load->get_loaderManager();
   this->pathManager = node_load->get_patherManager();
 
@@ -130,7 +132,7 @@ void MOD_loading::loading_custom_file(){
     //Open selected file
     if (ImGui::Button("Load selected", ImVec2(item_width, 0))){
       file_PCAP* pcapManager = loaderManager->get_pcapManager();
-      loaderManager->load_cloud(file_path);
+      loaderManager->load_collection(file_path);
     }
   }
 
@@ -298,12 +300,12 @@ void MOD_loading::loading_action(){
 
   //Load cloud
   if(load_mode == 0){
-    pathManager->loading();
+    pathManager->loading_cloud();
   }
 
-  //Load subset
+  //Load cloud
   if(load_mode == 1){
-    pathManager->loading_frames();
+    pathManager->loading_frame();
   }
 
   //---------------------------
@@ -333,15 +335,15 @@ void MOD_loading::saving_configuration(){
     ImGui::RadioButton("Range", &subset_mode, 1);
   }
 
-  //Setup subset range
+  //Setup cloud range
   if(save_mode == 1 && subset_mode == 1){
-    //Retrieve max number of cloud subset
+    //Retrieve max number of cloud cloud
     int subset_max;
     if(sceneManager->get_is_list_empty()){
       subset_max = 0;
     }else{
-      Cloud* cloud = sceneManager->get_selected_cloud();
-      subset_max = cloud->nb_subset - 1;
+      Collection* collection = sceneManager->get_selected_collection();
+      subset_max = collection->nb_obj - 1;
     }
 
     //Drag range
@@ -395,12 +397,12 @@ void MOD_loading::saving_dataFormat(){
   //---------------------------
 }
 void MOD_loading::saving_action(){
-  Cloud* cloud = sceneManager->get_selected_cloud();
+  Collection* collection = sceneManager->get_selected_collection();
   //---------------------------
 
   //Save selected cloud
   if(save_mode == 0 && cloud_mode == 0 && !sceneManager->get_is_list_empty()){
-    pathManager->saving_cloud(cloud);
+    pathManager->saving_cloud(collection);
   }
 
   //Save all cloud
@@ -408,13 +410,13 @@ void MOD_loading::saving_action(){
     pathManager->saving_cloud_all();
   }
 
-  //Save selected subset
+  //Save selected cloud
   if(save_mode == 1 && subset_mode == 0 && !sceneManager->get_is_list_empty()){
-    Subset* subset = cloud->subset_selected;
-    pathManager->saving_subset(subset);
+    Cloud* cloud = (Cloud*)collection->selected_obj;
+    pathManager->saving_subset(cloud);
   }
 
-  //Save subset range
+  //Save cloud range
   if(save_mode == 1 && subset_mode == 1 && !sceneManager->get_is_list_empty()){
     pathManager->saving_subset_range(frame_b, frame_e);
   }

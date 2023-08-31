@@ -20,7 +20,7 @@ vector<Data_file*> file_CSV::Loader(string pathFile){
   //At row level
   for(int i=0; i<csvFile.size(); i++){
     Data_file* data = new Data_file();
-    data->path = pathFile;
+    data->path_file = pathFile;
 
     //At field level
     int cpt_field = -1;
@@ -56,8 +56,8 @@ vector<Data_file*> file_CSV::Loader(string pathFile){
         vec3 point = vec3(x, y, z);
 
         data->name = "frame_" + to_string(i);
-        data->timestamp.push_back(ts);
-        data->location.push_back(point);
+        data->ts.push_back(ts);
+        data->xyz.push_back(point);
 
         cpt_field = 0;
         cpt_point++;

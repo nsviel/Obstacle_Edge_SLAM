@@ -22,7 +22,9 @@ class Camera;
 class GUI;
 class Viewport;
 class Renderer;
+class GPU_screenshot;
 class Configuration;
+class Engine;
 
 
 class CoreGLengine
@@ -32,21 +34,19 @@ public:
   ~CoreGLengine();
 
 public:
-  //Init opengl stuff
+  //Opengl stuff
   void arg(int argc, char* argv[]);
   void init();
-  void init_OGL();
+  void loop();
+
+  // Initialization stuff
+  void init_opengl();
   void init_object();
   void init_rendering();
 
-  //GL loop
-  void loop();
+  // Loop stuff
   void loop_gui();
-  void loop_selection();
-  void loop_pass_1();
-  void loop_pass_2();
-  void loop_drawScene();
-  void loop_drawScreen();
+  void loop_resizing();
   void loop_end();
 
   inline GLFWwindow* get_window(){return window;}
@@ -61,13 +61,15 @@ private:
   Camera* cameraManager;
   Dimension* dimManager;
   Renderer* renderManager;
+  GPU_screenshot* screenshotManager;
   GUI* guiManager;
   Shader* shaderManager;
   Viewport* viewportManager;
   Configuration* configManager;
+  Engine* engineManager;
 
   float time_loop;
-  bool openglRunning;
+  bool loop_run;
   bool flag_resized;
 };
 

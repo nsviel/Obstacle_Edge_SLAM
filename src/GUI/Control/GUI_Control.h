@@ -11,7 +11,6 @@ class Attribut;
 class Pather;
 class Transformation;
 class Extraction;
-class Glyphs;
 class Selection;
 class Heatmap;
 class Dimension;
@@ -19,6 +18,8 @@ class Node_gui;
 class Boxing;
 class Player;
 class Pose;
+class Graph;
+class Light;
 
 
 class GUI_Control
@@ -62,11 +63,12 @@ private:
   Attribut* attribManager;
   Pather* pathManager;
   Extraction* extractionManager;
-  Glyphs* glyphManager;
   Selection* selectionManager;
   Heatmap* heatmapManager;
   Player* playerManager;
   Boxing* boxingManager;
+  Graph* graphManager;
+  Light* lightManager;
 
   float cloud_trans_speed;
   float cloud_rotat_degree;

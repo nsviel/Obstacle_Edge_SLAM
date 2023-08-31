@@ -3,7 +3,7 @@
 
 // Server side implementation of UDP client-server model
 
-#include "../../../Engine/Data/struct_data_cap.h"
+#include "../../../Scene/Base/struct_data_file.h"
 #include "../../../common.h"
 
 #include <thread>
@@ -24,9 +24,9 @@ public:
   void start_watcher();
   void stop_watcher();
 
-  void lidar_create_subset(Data_cap* udp_packet);
+  void lidar_create_subset(Data_file* udp_packet);
 
-  inline Subset* get_subset_capture(){return subset_capture;}
+  inline Cloud* get_obj_capture(){return subset_capture;}
   inline bool* get_is_newSubset(){return &is_new_subset;}
   inline bool* get_is_scala_capturing(){return &is_capturing;}
   inline bool* get_run_capture(){return &run_capture;}
@@ -35,7 +35,7 @@ public:
 private:
   Extractor* extractManager;
 
-  Subset* subset_capture;
+  Cloud* subset_capture;
   string path_scala;
   string path_scala_file;
   bool flag_newScala;

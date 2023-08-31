@@ -4,7 +4,6 @@
 #include "../../common.h"
 
 class Node_engine;
-class Scene;
 class Camera;
 class Player_node;
 class Configuration;
@@ -20,13 +19,13 @@ public:
 public:
   //Main function
   void update_configuration();
-  void camera_followup(Cloud* cloud, int i);
+  void camera_followup(Collection* collection, int i);
   void camera_mode(string mode);
 
   //Subfunctions
-  vec3 camera_payload(Cloud* cloud, int ID_subset);
-  void camera_position(Subset* subset, vec3 E);
-  void camera_orientation(Subset* subset, vec3 E);
+  vec3 camera_payload(Collection* collection, int ID_object);
+  void camera_position(Cloud* cloud, vec3 E);
+  void camera_orientation(Cloud* cloud, vec3 E);
   void camera_reset();
 
   inline bool* get_with_camera_follow(){return &with_camera_follow;}
@@ -34,7 +33,6 @@ public:
   inline bool* get_with_camera_top(){return &with_camera_top;}
 
 private:
-  Scene* sceneManager;
   Camera* cameraManager;
   Configuration* configManager;
 

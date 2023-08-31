@@ -3,15 +3,16 @@
 #include "../Node_gui.h"
 
 #include "../../Engine/Node_engine.h"
-#include "../../Engine/Scene/Scene.h"
-#include "../../Engine/Scene/Configuration.h"
+#include "../../Scene/Node_scene.h"
+#include "../../Scene/Data/Scene.h"
+#include "../../Engine/Core/Configuration.h"
 #include "../../Load/Node_load.h"
 #include "../../Load/Processing/Loader.h"
 #include "../../Load/Processing/Pather.h"
 #include "../../Operation/Transformation/Transformation.h"
 #include "../../Module/Node_module.h"
-#include "../../Interface/File/Directory.h"
-#include "../../Interface/File/Info.h"
+#include "../../Specific/File/Directory.h"
+#include "../../Specific/File/Info.h"
 #include "../../Interface/Node_interface.h"
 #include "../../Interface/Capture/Capture.h"
 
@@ -25,12 +26,19 @@ GUI_Initialization::GUI_Initialization(Node_gui* node_gui){
   Node_engine* node_engine = node_gui->get_node_engine();
   Node_load* node_load = node_engine->get_node_load();
   Node_interface* node_interface = node_engine->get_node_interface();
+  Node_scene* node_scene = node_engine->get_node_scene();
 
-  this->sceneManager = node_engine->get_sceneManager();
+  this->sceneManager = node_scene->get_sceneManager();
   this->loaderManager = node_load->get_loaderManager();
   this->pathManager = node_load->get_patherManager();
   this->configManager = node_engine->get_configManager();
   this->captureManager = node_interface->get_captureManager();
+  this->transformManager = new Transformation();
+
+  path_init_file.push_back("../media/engine/fastScene/buddha.pts");
+  path_init_file.push_back("../media/engine/fastScene/cube.obj");
+  path_init_file.push_back("../media/engine/fastScene/sphere.obj");
+  path_init_file.push_back("/home/aeter/Desktop/Point_cloud/obj/planet/planet.obj");
 
   //---------------------------
   this->update_configuration();
@@ -51,8 +59,10 @@ void GUI_Initialization::update_configuration(){
 
   this->with_remove_cloud = true;
   this->with_onthefly = false;
-  this->cloud_scale = 1;
+  this->object_scale = 1;
   this->lidar_model = "velodyne_vlp64";
+
+  //Open accepted formats
   this->accepted_format.push_back("pts");
   this->accepted_format.push_back("obj");
   this->accepted_format.push_back("ply");
@@ -64,27 +74,31 @@ void GUI_Initialization::update_configuration(){
   this->accepted_format.push_back("las");
   this->accepted_format.push_back("laz");
 
-  this->path_1 = configManager->parse_json_s("interface", "path_point_cloud_1");
-  this->path_2 = configManager->parse_json_s("interface", "path_point_cloud_2");
-  this->path_3 = configManager->parse_json_s("interface", "path_point_cloud_3");
+  //Tree file pathes
+  this->path_init_vec.push_back(configManager->parse_json_s("interface", "path_point_cloud_1"));
+  this->path_init_vec.push_back(configManager->parse_json_s("interface", "path_point_cloud_2"));
+  this->path_init_vec.push_back(configManager->parse_json_s("interface", "path_point_cloud_3"));
 
   //---------------------------
   this->construst_tree();
 }
 
-//GUI subfunctions
-void GUI_Initialization::operation_cloud(Cloud* cloud){
+//Operation on loaded cloud
+void GUI_Initialization::operation_new_collection(Collection* collection){
   //---------------------------
 
-  if(cloud != nullptr){
+  if(collection != nullptr){
     //Set lidar model
-    cloud->lidar_model = lidar_model;
+    collection->lidar_model = lidar_model;
 
     //Set scaling
-    if(cloud_scale != 1){
-      Transformation transformManager;
-      transformManager.make_scaling(cloud, (float)cloud_scale);
-      sceneManager->update_cloud_location(cloud);
+    if(object_scale != 1){
+      for(int i=0; i<collection->list_obj.size(); i++){
+        Object_* object = collection->get_obj(i);
+        sceneManager->update_MinMax(object);
+        transformManager->make_scaling(object, object_scale);
+        sceneManager->update_buffer_location(object);
+      }
     }
   }
 
@@ -95,7 +109,7 @@ void GUI_Initialization::operation_option(){
 
   //Point cloud scaling
   ImGui::SetNextItemWidth(100);
-  ImGui::DragInt("Scale", &cloud_scale, 1, 1, 100, "%d x");
+  ImGui::DragFloat("Scale##4567", &object_scale, 0.1, 0.1, 100, "%.2f x");
   ImGui::SameLine();
 
   //Remove old clouds
@@ -132,6 +146,80 @@ void GUI_Initialization::operation_option(){
   //---------------------------
 }
 
+//Specific scene construction
+void GUI_Initialization::construct_node_scene(vector<vector<tree_file*>>& nodes_path_vec){
+  //---------------------------
+
+  //Scene folder
+  vector<tree_file*> root_scene;
+  tree_file* node = new tree_file();
+  node->name = "scene";
+  node->type = "Folder";
+  node->end_folder = true;
+  node->leaf_nb = 3;
+  node->leaf_idx = 1;
+  node->already_open = true;
+  root_scene.push_back(node);
+
+  //Scene 1
+  node = new tree_file();
+  node->name = "Rocks";
+  node->leaf_nb = 0;
+  node->type = "scene_1";
+  root_scene.push_back(node);
+
+  //Scene 2
+  node = new tree_file();
+  node->name = "Bunny";
+  node->leaf_nb = 0;
+  node->type = "scene_2";
+  root_scene.push_back(node);
+
+  //Scene 3
+  node = new tree_file();
+  node->name = "Dragon";
+  node->leaf_nb = 0;
+  node->type = "scene_3";
+  root_scene.push_back(node);
+
+  nodes_path_vec.push_back(root_scene);
+
+  //---------------------------
+}
+void GUI_Initialization::build_scene_1(){
+  //---------------------------
+
+  for (int i=0; i<3; i++){
+    Collection* rock = loaderManager->load_collection("/home/aeter/Desktop/Point_cloud/obj/rock/rock.obj");
+    transformManager->make_translation(rock, vec3(2-4*i, 0, 0));
+    sceneManager->update_collection_location(rock);
+  }
+
+  for (int i=0; i<3; i++){
+    Collection* rock = loaderManager->load_collection("/home/aeter/Desktop/Point_cloud/obj/rock/rock.obj");
+    transformManager->make_translation(rock, vec3(2-4*i, -4, 0));
+    sceneManager->update_collection_location(rock);
+  }
+
+  //---------------------------
+}
+void GUI_Initialization::build_scene_2(){
+  //---------------------------
+
+  Collection* rabbit = loaderManager->load_collection("../media/engine/fastScene/bunny.ply");
+
+
+  //---------------------------
+}
+void GUI_Initialization::build_scene_3(){
+  //---------------------------
+
+  Collection* dragon = loaderManager->load_collection("/home/aeter/Desktop/Point_cloud/ply/dragon.ply");
+
+
+  //---------------------------
+}
+
 //Tree view
 void GUI_Initialization::treeview(){
   //---------------------------
@@ -146,9 +234,9 @@ void GUI_Initialization::treeview(){
 
     //Display pre-built trees
     this->display_node_root(nodes_root);
-    this->display_node(nodes_path_1[0], nodes_path_1);
-    this->display_node(nodes_path_2[0], nodes_path_2);
-    this->display_node(nodes_path_3[0], nodes_path_3);
+    for(int i=0; i<nodes_path_vec.size(); i++){
+      this->display_node(nodes_path_vec[i][0], nodes_path_vec[i]);
+    }
 
     ImGui::EndTable();
   }
@@ -156,17 +244,21 @@ void GUI_Initialization::treeview(){
   //---------------------------
 }
 void GUI_Initialization::construst_tree(){
+  this->nodes_path_vec.clear();
   //---------------------------
 
-  vector<string> vec_path;
-  vec_path.push_back("../media/engine/fastScene/buddha.pts");
-  vec_path.push_back("/home/aeter/Desktop/Point_cloud/ply/bun_zipper.ply");
-  vec_path.push_back("/home/aeter/Desktop/Point_cloud/ply/xyzrgb_statuette.ply");
+  //Construct init path nodes for specific cloud locations
+  this->construct_node_root(path_init_file, nodes_root);
 
-  this->construct_node_root(vec_path, nodes_root);
-  this->construct_node(path_1, nodes_path_1);
-  this->construct_node(path_2, nodes_path_2);
-  this->construct_node(path_3, nodes_path_3);
+  //Set a node for specific scene construction
+  this->construct_node_scene(nodes_path_vec);
+
+  //Construct predefined init path nodes
+  for(int i=0; i<path_init_vec.size(); i++){
+    vector<tree_file*> nodes_path;
+    this->construct_node(path_init_vec[i], nodes_path);
+    this->nodes_path_vec.push_back(nodes_path);
+  }
 
   //---------------------------
 }
@@ -299,28 +391,26 @@ void GUI_Initialization::display_node(tree_file* node, vector<tree_file*>& all_n
   }
 }
 void GUI_Initialization::display_node_root(vector<tree_file*>& all_nodes){
-  if(all_nodes.size() != 0){
-    //---------------------------
+  //---------------------------
 
-    for(int i=0; i<all_nodes.size(); i++){
-      tree_file* node = all_nodes[i];
+  for(int i=0; i<all_nodes.size(); i++){
+    tree_file* node = all_nodes[i];
 
-      ImGui::TableNextRow();
-      ImGui::TableNextColumn();
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
 
-      ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth;
-      ImGui::TreeNodeEx(node->name.c_str(), node_flags);
-      if(ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)){
-        this->open_selection(node);
-      }
-      ImGui::TableNextColumn();
-      ImGui::Text("%.1f MB", node->size);
-      ImGui::TableNextColumn();
-      ImGui::TextUnformatted(node->type.c_str());
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth;
+    ImGui::TreeNodeEx(node->name.c_str(), node_flags);
+    if(ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)){
+      this->open_selection(node);
     }
-
-    //---------------------------
+    ImGui::TableNextColumn();
+    ImGui::Text("%.1f MB", node->size);
+    ImGui::TableNextColumn();
+    ImGui::TextUnformatted(node->type.c_str());
   }
+
+  //---------------------------
 }
 bool GUI_Initialization::check_file_format(string path){
   string format = get_format_from_path(path);
@@ -340,27 +430,34 @@ void GUI_Initialization::open_selection(tree_file* node){
 
   if(with_remove_cloud){
     captureManager->stop_capture();
-    sceneManager->remove_cloud_all();
+    sceneManager->remove_collection_all();
   }
 
   if(node->type == "File"){
-    bool ok = loaderManager->load_cloud(node->path);
-    if(ok){
-      this->operation_cloud(loaderManager->get_createdcloud());
-    }
+    Collection* collection = loaderManager->load_collection(node->path);
+    this->operation_new_collection(collection);
   }
   else if(node->type == "Folder" && node->end_folder){
     if(pathManager->check_folder_format(node->path, "ply")){
-      bool ok = false;
+      Collection* collection;
+
       if(with_onthefly == false){
-        ok = pathManager->loading_directory_frame(node->path);
+        collection = pathManager->loading_directory_frame(node->path);
       }else{
-        ok = pathManager->loading_onthefly(node->path);
+        collection = pathManager->loading_onthefly(node->path);
       }
-      if(ok){
-        this->operation_cloud(loaderManager->get_createdcloud());
-      }
+
+      this->operation_new_collection(collection);
     }
+  }
+  else if(node->type == "scene_1"){
+    this->build_scene_1();
+  }
+  else if(node->type == "scene_2"){
+    this->build_scene_2();
+  }
+  else if(node->type == "scene_3"){
+    this->build_scene_3();
   }
 
   //---------------------------

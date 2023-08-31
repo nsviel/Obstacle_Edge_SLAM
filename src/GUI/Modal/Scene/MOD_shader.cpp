@@ -1,11 +1,12 @@
 #include "MOD_shader.h"
 
-#include "IconsFontAwesome5.h"
+#include "image/IconsFontAwesome5.h"
 
 #include "../../../Engine/Node_engine.h"
-#include "../../../Engine/OpenGL/Shader/Shader.h"
-#include "../../../Engine/OpenGL/Shader/ShaderObject.h"
-#include "../../../Engine/OpenGL/Shader/PP_edl.h"
+#include "../../../Scene/Node_scene.h"
+#include "../../../Engine/Shader/Shader.h"
+#include "../../../Engine/Shader/Source/Shader_edl.h"
+#include "../../../Engine/Shader/Source/Shader_light.h"
 
 #include <fstream>
 
@@ -18,7 +19,6 @@ MOD_shader::MOD_shader(Node_engine* node_engine){
   //---------------------------
 
   this->shaderManager = node_engine->get_shaderManager();
-  this->edlManager = shaderManager->get_edlManager();
 
   this->item_width = 150;
 
@@ -33,7 +33,8 @@ void MOD_shader::window_shader(){
     ImGui::Begin("Shader manager", open, ImGuiWindowFlags_AlwaysAutoResize);
     //---------------------------
 
-    this->parameter();
+    this->shader_lighting();
+    this->shader_render();
 
     //---------------------------
     ImGui::Separator();
@@ -45,28 +46,45 @@ void MOD_shader::window_shader(){
 }
 
 //Sub functions
-void MOD_shader::parameter(){
+void MOD_shader::shader_lighting(){
+  Shader_light* shader_lighting = (Shader_light*)shaderManager->get_shader_src_byName("light");
   //---------------------------
 
+  vec3 color = shader_lighting->get_light_color();
+  ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoInputs;
+  if(ImGui::ColorEdit3("Color##43", (float*)&color, flags)){
+    shader_lighting->set_light_color(color);
+    shader_lighting->update_shader();
+  }
+
+  //---------------------------
+}
+void MOD_shader::shader_render(){
+  Shader_edl* shader_edl = (Shader_edl*)shaderManager->get_shader_src_byName("render_edl");
+  //---------------------------
+
+  /*ImGui::SetNextItemWidth(item_width);
+  bool* with_inv = shader_edl->get_with_inv();
+  if(ImGui::Checkbox("Color inversion", with_inv)){
+    shader_edl->update_shader();
+  }*/
+
   ImGui::SetNextItemWidth(item_width);
-  bool* with_edl = edlManager->get_with_edl();
+  bool* with_edl = shader_edl->get_with_edl();
   if(ImGui::Checkbox("EDL shader", with_edl)){
-    ShaderObject* shader_screen = shaderManager->get_shader_screen();
-    edlManager->setup_edl(shader_screen->get_program_ID());
+    shader_edl->update_shader();
   }
 
   ImGui::SetNextItemWidth(item_width);
-  float* edl_radius = edlManager->get_edl_radius();
+  float* edl_radius = shader_edl->get_edl_radius();
   if(ImGui::SliderFloat("EDL radius", edl_radius, 1.0f, 3.0f)){
-    ShaderObject* shader_screen = shaderManager->get_shader_screen();
-    edlManager->setup_edl(shader_screen->get_program_ID());
+    shader_edl->update_shader();
   }
 
   ImGui::SetNextItemWidth(item_width);
-  float* edl_strength = edlManager->get_edl_strength();
-  if(ImGui::SliderFloat("EDL strength", edl_strength, 1.0f, 5000.0f)){
-    ShaderObject* shader_screen = shaderManager->get_shader_screen();
-    edlManager->setup_edl(shader_screen->get_program_ID());
+  float* edl_strength = shader_edl->get_edl_strength();
+  if(ImGui::SliderFloat("EDL strength", edl_strength, 1.0f, 1000.0f)){
+    shader_edl->update_shader();
   }
 
   //---------------------------

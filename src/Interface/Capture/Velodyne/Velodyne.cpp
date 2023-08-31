@@ -11,6 +11,7 @@
 #include "../../Node_interface.h"
 
 #include "../../../Engine/Node_engine.h"
+#include "../../../Scene/Node_scene.h"
 #include "../../../Load/Node_load.h"
 #include "../../../Load/Processing/Extractor.h"
 
@@ -31,11 +32,11 @@ Velodyne::Velodyne(Node_interface* node_interface){
 
   Node_load* node_load = node_interface->get_node_load();
 
-  this->extractManager = node_load->get_extractManager();
+  this->extractManager = new Extractor();
   this->serverManager = new Capture_server();
   this->frameManager = new Capture_frame();
   this->vlp16Parser = new Parser_VLP16();
-  this->subset_capture = new Subset();
+  this->subset_capture = new Cloud();
 
   this->time_frame = 0;
   this->time_packet = 0;
@@ -80,14 +81,14 @@ void Velodyne::start_watcher(int port){
 
       //Parse decimal packet into point cloud
       if(packet_dec.size() != 0){
-        Data_cap* data_cap = vlp16Parser->parse_packet(packet_dec);
+        Data_file* data_cap = vlp16Parser->parse_packet(packet_dec);
 
         //Iteratively build a complete frame
         bool frame_rev = frameManager->build_frame(data_cap);
 
         // If frame revolution, make some ope
         if(frame_rev){
-          Data_cap* frame = frameManager->get_endedFrame();
+          Data_file* frame = frameManager->get_endedFrame();
           this->udp_capture = *frame;
 
           //Time
@@ -120,17 +121,17 @@ void Velodyne::stop_watcher(){
 
   //---------------------------
 }
-Subset* Velodyne::get_subset_capture(){
+Cloud* Velodyne::get_obj_capture(){
   //---------------------------
 
   //Free the memory to get synchroneous data
   udp_capture.name = "";
 
-  //Convert the udp packet into subset
-  Subset* subset = extractManager->extract_data(udp_capture);
+  //Convert the udp packet into cloud
+  Cloud* cloud = extractManager->extract_data(udp_capture);
 
   //---------------------------
-  return subset;
+  return cloud;
 }
 
 //LiDAR function

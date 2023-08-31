@@ -11,6 +11,7 @@ class Loader;
 class Configuration;
 class Scala;
 class Velodyne;
+class GPU_data;
 
 
 class Capture
@@ -36,14 +37,14 @@ public:
   void start_capture_scala();
 
   //Subfunctions
-  void operation_new_subset(Subset* subset);
-  void supress_nullpoints(Subset* subset);
-  void control_nb_subset(Cloud* cloud);
+  void operation_new_subset(Cloud* cloud);
+  void supress_nullpoints(Cloud* cloud);
+  void control_nb_subset(Collection* collection);
   void create_empty_cloud();
 
   inline Scala* get_scalaManager(){return scalaManager;}
   inline Velodyne* get_veloManager(){return veloManager;}
-  inline Cloud* get_cloud_capture(){return cloud_capture;}
+  inline Collection* get_cloud_capture(){return collection_capture;}
 
   inline string* get_lidar_model(){return &lidar_model;}
   inline bool* get_is_capturing(){return &is_capturing;}
@@ -53,6 +54,7 @@ public:
   inline int get_capture_nb_point_raw(){return capture_nb_point_raw;}
   inline int* get_nb_subset_max(){return &nb_subset_max;}
   inline int get_ratio_frame(){return ratio_frame;}
+  inline int* get_point_size(){return &point_size;}
   inline void set_ratio_frame(int value){this->ratio_frame = value; this->ratio_cpt = 0;}
 
 private:
@@ -60,8 +62,9 @@ private:
   Loader* loaderManager;
   Configuration* configManager;
   Node_operation* node_ope;
+  GPU_data* gpuManager;
 
-  Cloud* cloud_capture;
+  Collection* collection_capture;
   Scala* scalaManager;
   Velodyne* veloManager;
 
@@ -78,6 +81,7 @@ private:
   int ratio_frame;
   int ratio_cpt;
   int nb_subset_max;
+  int point_size;
 };
 
 #endif
