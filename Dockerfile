@@ -27,6 +27,6 @@ RUN cmake .. && make -j4
 # socket server
 EXPOSE 2370
 # http server
-EXPOSE 8888
+EXPOSE 8889
 
 CMD ["./executable"]
