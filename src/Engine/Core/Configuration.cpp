@@ -148,7 +148,7 @@ void Configuration::preconf_default(Json::Value& root){
   //Network
   Json::Value network;
   network["with_http_demon"] = true;
-  network["http_port"] = 8888;
+  network["http_port"] = 8889;
   network["mqtt_sncf_port"] = 1883;
   network["mqtt_sncf_dest"] = "mqtt_sncf_broker";
   network["mqtt_sncf_client"] = "ai_module";
