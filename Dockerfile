@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 
 # Install dependancy packages
+RUN apt-get update && apt-get install -y apt-transport-https
 RUN apt update \
     && apt install -y --no-install-recommends git xvfb libtool sudo build-essential mesa-utils cmake gnuplot ca-certificates xvfb \
     libglfw3-dev libglew-dev libeigen3-dev libglm-dev libflann-dev libcurl4-openssl-dev libtins-dev libjsoncpp-dev \
