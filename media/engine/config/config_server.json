@@ -4,7 +4,7 @@
       "with_camera_follow" : true
    },
    "dynamic" : {
-      "with_filter_sphere" : true,
+      "with_filter_sphere" : false,
       "with_save_frame" : true,
       "with_save_image" : true
    },

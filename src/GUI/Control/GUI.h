@@ -7,7 +7,7 @@ class Dimension;
 
 class GUI_Modal;
 class GUI_Control;
-class GUI_option;
+class GUI_render_option;
 class GUI_menuBar;
 class GUI_leftPanel;
 class GUI_consol;
@@ -38,7 +38,7 @@ private:
   GUI_operation* gui_operation;
   GUI_Modal* gui_window;
   GUI_Control* gui_control;
-  GUI_option* gui_option;
+  GUI_render_option* gui_render_option;
   GUI_leftPanel* gui_leftPanel;
   GUI_menuBar* gui_menuBar;
   GUI_consol* gui_consol;

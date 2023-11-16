@@ -34,7 +34,7 @@
 
 
 //Constructor / Destructor
-GUI_option::GUI_option(Node_gui* node_gui){
+GUI_render_option::GUI_render_option(Node_gui* node_gui){
   //---------------------------
 
   Node_engine* node_engine = node_gui->get_node_engine();
@@ -59,10 +59,10 @@ GUI_option::GUI_option(Node_gui* node_gui){
 
   //---------------------------
 }
-GUI_option::~GUI_option(){}
+GUI_render_option::~GUI_render_option(){}
 
 //Main function
-void GUI_option::design_Options(){
+void GUI_render_option::design_Options(){
   //---------------------------
 
   this->option_font();
@@ -75,7 +75,7 @@ void GUI_option::design_Options(){
 }
 
 //Subfunctions
-void GUI_option::option_font(){
+void GUI_render_option::option_font(){
   ImGuiIO& io = ImGui::GetIO();
   //---------------------------
 
@@ -89,7 +89,7 @@ void GUI_option::option_font(){
   //---------------------------
   ImGui::Separator();
 }
-void GUI_option::option_glyph(){
+void GUI_render_option::option_glyph(){
   Collection* collection = sceneManager->get_selected_collection();
   ImGui::Columns(2);
   //---------------------------
@@ -202,7 +202,7 @@ void GUI_option::option_glyph(){
   ImGui::Columns(1);
   ImGui::Separator();
 }
-void GUI_option::option_mode(){
+void GUI_render_option::option_mode(){
   if(ImGui::CollapsingHeader("Mode")){
     //---------------------------
 
@@ -262,7 +262,7 @@ void GUI_option::option_mode(){
     ImGui::Separator();
   }
 }
-void GUI_option::option_parameter(){
+void GUI_render_option::option_parameter(){
   if(ImGui::CollapsingHeader("Parameters")){
     Collection* collection = sceneManager->get_selected_collection();
     if(collection == nullptr) return;
@@ -404,7 +404,7 @@ void GUI_option::option_parameter(){
     ImGui::Separator();
   }
 }
-void GUI_option::option_color(){
+void GUI_render_option::option_color(){
   if(ImGui::CollapsingHeader("Colors")){
     Collection* collection = sceneManager->get_selected_collection();
     int colorEditSize = 150;
@@ -463,7 +463,7 @@ void GUI_option::option_color(){
 }
 
 //Mode subfunction
-void GUI_option::mode_capture_demo(){
+void GUI_render_option::mode_capture_demo(){
   //---------------------------
 
   //Capture demo mode

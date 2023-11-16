@@ -39,7 +39,7 @@ void GUI_consol::design_consol(){
 void GUI_consol::draw_consol(){
   //----------------------------
 
-  //Get panel dimension
+  //Get gui_render_panel dimension
   vec2* bp_pos = dimManager->get_gui_bp_pos();
   vec2* bp_dim = dimManager->get_gui_bp_dim();
 
@@ -49,7 +49,7 @@ void GUI_consol::draw_consol(){
   ImGui::SetNextWindowSize(ImVec2(bp_dim->x, bp_dim->y));
   ImGui::Begin("BottomPanel##outer", NULL, window_flags);{
 
-    //Update panel dimension
+    //Update gui_render_panel dimension
     dim_bp.x = ImGui::GetWindowSize().x;
     dim_bp.y = ImGui::GetWindowSize().y;
 
@@ -74,7 +74,7 @@ void GUI_consol::draw_consol(){
 void GUI_consol::update_dimension(){
   //----------------------------
 
-  //Get panel dimension
+  //Get gui_render_panel dimension
   vec2 win_dim = dimManager->get_win_dim();
   vec2* bp_pos = dimManager->get_gui_bp_pos();
   vec2* bp_dim = dimManager->get_gui_bp_dim();

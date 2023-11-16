@@ -7,6 +7,6 @@ sudo docker run \
     --device="/dev/dri:/dev/dri" \
     --env="DISPLAY=99" \
     --publish=2370:2370 \
-    --publish=8888:8888 \
+    --publish=8889:8889 \
     -v data:/app/hubium \
     velodium bash -c "sudo xvfb-run --server-args='-screen 0 1024x500x24' ./executable server"

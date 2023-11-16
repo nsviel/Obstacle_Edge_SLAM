@@ -21,12 +21,12 @@ class Capture;
 class Online;
 
 
-class GUI_option
+class GUI_render_option
 {
 public:
   //Constructor / Destructor
-  GUI_option(Node_gui* node_gui);
-  ~GUI_option();
+  GUI_render_option(Node_gui* node_gui);
+  ~GUI_render_option();
 
 public:
   //Main function
@@ -46,7 +46,7 @@ public:
 
 private:
   GUI_Control* gui_control;
-  GUI_option* gui_option;
+  GUI_render_option* gui_render_option;
 
   Configuration* configManager;
   Scene* sceneManager;

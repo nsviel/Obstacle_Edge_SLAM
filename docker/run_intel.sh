@@ -8,7 +8,7 @@ sudo docker run \
     --device="/dev/dri:/dev/dri" \
     --env="DISPLAY=$DISPLAY" \
     -p 2370:2370 \
-    -p 8888:8888 \
+    -p 8889:8889 \
     -v data:/app/hubium \
     velodium
 xhost - >/dev/null

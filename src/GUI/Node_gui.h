@@ -11,7 +11,7 @@ class Node_interface;
 class GUI;
 class GUI_Modal;
 class GUI_Control;
-class GUI_option;
+class GUI_render_option;
 class GUI_menuBar;
 class GUI_leftPanel;
 class GUI_consol;
@@ -48,7 +48,7 @@ public:
   inline GUI* get_guiManager(){return guiManager;}
   inline GUI_Modal* get_gui_window(){return gui_window;}
   inline GUI_Control* get_gui_control(){return gui_control;}
-  inline GUI_option* get_gui_option(){return gui_option;}
+  inline GUI_render_option* get_gui_option(){return gui_render_option;}
   inline GUI_menuBar* get_gui_menuBar(){return gui_menuBar;}
   inline GUI_leftPanel* get_gui_leftPanel(){return gui_leftPanel;}
   inline GUI_consol* get_gui_consol(){return gui_consol;}
@@ -70,7 +70,7 @@ private:
   GUI* guiManager;
   GUI_Modal* gui_window;
   GUI_Control* gui_control;
-  GUI_option* gui_option;
+  GUI_render_option* gui_render_option;
   GUI_menuBar* gui_menuBar;
   GUI_leftPanel* gui_leftPanel;
   GUI_consol* gui_consol;

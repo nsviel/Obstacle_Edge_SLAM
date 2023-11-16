@@ -327,7 +327,7 @@ void Configuration::preconf_server(Json::Value& root){
 
   //Dynamic
   Json::Value dynamic;
-  dynamic["with_filter_sphere"] = true;
+  dynamic["with_filter_sphere"] = false;
   dynamic["with_save_image"] = true;
   dynamic["with_save_frame"] = true;
   root["dynamic"] = dynamic;

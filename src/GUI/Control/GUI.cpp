@@ -33,7 +33,7 @@ GUI::GUI(Node_gui* node_gui){
   this->dimManager = node_engine->get_dimManager();
   this->gui_window = node_gui->get_gui_window();
   this->gui_control = node_gui->get_gui_control();
-  this->gui_option = node_gui->get_gui_option();
+  this->gui_render_option = node_gui->get_gui_option();
   this->gui_leftPanel = node_gui->get_gui_leftPanel();
   this->gui_menuBar = node_gui->get_gui_menuBar();
   this->gui_consol = node_gui->get_gui_consol();

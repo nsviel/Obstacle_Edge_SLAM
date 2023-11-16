@@ -4,7 +4,7 @@
 #include "../../common.h"
 
 class GUI_Modal;
-class GUI_option;
+class GUI_render_option;
 class GUI_leftPanel;
 class GUI_Player;
 class Node_gui;
@@ -47,7 +47,7 @@ private:
 
   Node_gui* node_gui;
   GUI_Modal* gui_window;
-  GUI_option* optionManager;
+  GUI_render_option* optionManager;
   GUI_leftPanel* gui_leftPanel;
   GUI_Player* gui_player;
   GUI_Initialization* gui_init;

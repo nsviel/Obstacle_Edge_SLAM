@@ -62,7 +62,7 @@ void GUI_leftPanel::design_leftPanel_bottom(){
 void GUI_leftPanel::panel_top(){
   //----------------------------
 
-  //Get panel dimension
+  //Get gui_render_panel dimension
   vec2 win_dim = dimManager->get_win_dim();
   vec2* ltp_dim = dimManager->get_gui_ltp_dim();
   vec2* ltp_pos = dimManager->get_gui_ltp_pos();
@@ -74,7 +74,7 @@ void GUI_leftPanel::panel_top(){
   ImGui::SetNextWindowSizeConstraints(ImVec2(2, 10), ImVec2(500, win_dim.y));
   ImGui::Begin("LeftPanel##topOuter", NULL, window_flags);{
 
-    //Update panel dimension
+    //Update gui_render_panel dimension
     dim_ltp.x = ImGui::GetWindowSize().x;
     dim_ltp.y = ImGui::GetWindowSize().y;
 
@@ -100,7 +100,7 @@ void GUI_leftPanel::panel_bot(){
   vec2 win_dim = dimManager->get_win_dim();
   //----------------------------
 
-  //Get panel dimension
+  //Get gui_render_panel dimension
   vec2* lbp_dim = dimManager->get_gui_lbp_dim();
   vec2* lbp_pos = dimManager->get_gui_lbp_pos();
 
@@ -112,7 +112,7 @@ void GUI_leftPanel::panel_bot(){
   ImGui::Begin("LeftPanel##botOuter", NULL, window_flags);
   //---------------
 
-  //Update panel dimension
+  //Update gui_render_panel dimension
   dim_lbp.x = ImGui::GetWindowSize().x;
   dim_lbp.y = ImGui::GetWindowSize().y;
 
@@ -145,7 +145,7 @@ void GUI_leftPanel::update_dimension(){
   vec2* bp_pos = dimManager->get_gui_bp_pos();
   vec2* bp_dim = dimManager->get_gui_bp_dim();
 
-  //Top panel change
+  //Top gui_render_panel change
   if(dim_ltp.x != ltp_dim->x || dim_ltp.y != ltp_dim->y){
     *ltp_dim = dim_ltp;
 
@@ -157,7 +157,7 @@ void GUI_leftPanel::update_dimension(){
 
     dimManager->update();
   }
-  //Bottom panel change
+  //Bottom gui_render_panel change
   else if(dim_lbp.x != lbp_dim->x || dim_lbp.y != lbp_dim->y){
     *lbp_dim = dim_lbp;
 
