@@ -8,7 +8,7 @@
       "speed_move" : 3.0,
       "speed_zoom" : 0.10000000149011612,
       "with_camera_absolute" : false,
-      "with_camera_follow" : true,
+      "with_camera_follow" : false,
       "with_camera_top" : false
    },
    "dynamic" : {
@@ -19,7 +19,7 @@
       "player_mode" : "player",
       "with_filter_sphere" : true,
       "with_save_frame" : false,
-      "with_save_image" : false
+      "with_save_image" : true
    },
    "glyph" : {
       "aabb_visibility" : true,
@@ -36,7 +36,7 @@
       "topPanel_height" : 18
    },
    "interface" : {
-      "capture_port" : 2370,
+      "capture_port" : 55555,
       "lidar_model" : "velodyne_vlp64",
       "path_point_cloud_1" : "../media/engine",
       "path_point_cloud_2" : "../media/point_cloud",
@@ -48,7 +48,7 @@
    "module" : {
       "silent_slam" : false,
       "with_prediction" : false,
-      "with_slam" : true
+      "with_slam" : false
    },
    "network" : {
       "http_port" : 8889,

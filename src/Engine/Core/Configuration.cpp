@@ -133,7 +133,7 @@ void Configuration::preconf_default(Json::Value& root){
 
   //Camera
   Json::Value camera;
-  camera["with_camera_follow"] = true;
+  camera["with_camera_follow"] = false;
   camera["with_camera_absolute"] = false;
   camera["with_camera_top"] = false;
   camera["fov"] = 65.0f;
@@ -182,7 +182,7 @@ void Configuration::preconf_default(Json::Value& root){
 
   //Module
   Json::Value module;
-  module["with_slam"] = true;
+  module["with_slam"] = false;
   module["with_prediction"] = false;
   module["silent_slam"] = false;
   root["module"] = module;
@@ -190,7 +190,7 @@ void Configuration::preconf_default(Json::Value& root){
   //Dynamic
   Json::Value dynamic;
   dynamic["with_filter_sphere"] = true;
-  dynamic["with_save_image"] = false;
+  dynamic["with_save_image"] = true;
   dynamic["with_save_frame"] = false;
   dynamic["nb_save_image"] = 1;
   dynamic["nb_save_frame"] = 20;
@@ -202,7 +202,7 @@ void Configuration::preconf_default(Json::Value& root){
   //Interface
   Json::Value interface;
   interface["lidar_model"] = "velodyne_vlp64";
-  interface["capture_port"] = 2370;
+  interface["capture_port"] = 55555;
   interface["with_capture"] = false;
   interface["with_remove_lastSubset"] = false;
   interface["ratio_frame"] = 1;
@@ -314,14 +314,14 @@ void Configuration::preconf_server(Json::Value& root){
 
   //Camera
   Json::Value camera;
-  camera["with_camera_follow"] = true;
-  camera["with_camera_absolute"] = true;
+  camera["with_camera_follow"] = false;
+  camera["with_camera_absolute"] = false;
   root["camera"] = camera;
 
   //Module
   Json::Value module;
-  module["with_slam"] = true;
-  module["with_prediction"] = true;
+  module["with_slam"] = false;
+  module["with_prediction"] = false;
   module["silent_slam"] = true;
   root["module"] = module;
 
@@ -329,7 +329,7 @@ void Configuration::preconf_server(Json::Value& root){
   Json::Value dynamic;
   dynamic["with_filter_sphere"] = false;
   dynamic["with_save_image"] = true;
-  dynamic["with_save_frame"] = true;
+  dynamic["with_save_frame"] = false;
   root["dynamic"] = dynamic;
 
   //Interface

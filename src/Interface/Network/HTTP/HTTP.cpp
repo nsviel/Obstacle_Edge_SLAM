@@ -26,6 +26,8 @@ void HTTP::update_configuration(){
   this->with_http_demon = configManager->parse_json_b("network", "with_http_demon");
   this->server_port = configManager->parse_json_i("network", "http_port");
 
+  cout<<"start http server on port "<<server_port<<endl;
+
   //---------------------------
 }
 void HTTP::start_server(){

@@ -82,7 +82,7 @@ void PCAP_reader::bind_sniffer(){
 
   /* Compile and apply the filter */
   struct bpf_program fp;		/* The compiled filter */
-  char filter_exp[] = "udp port 2370";	/* The filter expression */
+  char filter_exp[] = "udp port 55555";	/* The filter expression */
   if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
     fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
     return;
@@ -165,7 +165,7 @@ void PCAP_reader::snif_and_save_pcap(){
 
   /* Compile and apply the filter */
   struct bpf_program fp;		/* The compiled filter */
-  char filter_exp[] = "udp port 2370";	/* The filter expression */
+  char filter_exp[] = "udp port 55555";	/* The filter expression */
   if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
     fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
     return;
