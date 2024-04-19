@@ -48,7 +48,7 @@ void Capture::update_configuration(){
   //---------------------------
 
   this->lidar_model = configManager->parse_json_s("interface", "lidar_model");
-  this->capture_port = configManager->parse_json_i("interface", "capture_port");
+  this->capture_port = 55555;
   this->ratio_frame = configManager->parse_json_i("interface", "ratio_frame");
   this->ratio_cpt = ratio_frame;
 

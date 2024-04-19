@@ -159,6 +159,7 @@ Frame* Collection::get_frame_byID(int querry){
   }
 
   //---------------------------
+  return nullptr;
 }
 Object_* Collection::get_obj_selected_init(){
   //---------------------------
