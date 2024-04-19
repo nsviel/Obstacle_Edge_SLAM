@@ -18,7 +18,7 @@ Visibility::Visibility(Node_operation* node_ope){
   this->sceneManager = node_scene->get_sceneManager();
   this->flyManager = node_ope->get_flyManager();
 
-  this->visibility_range = 15;
+  this->visibility_range = 1;
   this->visibility_range_max = 30;
 
   //---------------------------

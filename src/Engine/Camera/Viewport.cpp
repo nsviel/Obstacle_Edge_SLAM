@@ -33,11 +33,11 @@ void Viewport::viewport_init_main(){
   //---------------------------
 
   float camPos = configManager->parse_json_f("camera", "initial_pos");
-  view_main.cam_P = vec3(camPos, camPos, camPos);
+  view_main.cam_P = vec3(0, 10, 15);
   view_main.speed_move = configManager->parse_json_f("camera", "speed_move");
   view_main.speed_mouse = configManager->parse_json_f("camera", "speed_mouse");
-  view_main.angle_azimuth = M_PI + M_PI/4;// Initial horizontal angle
-  view_main.angle_elevation = - M_PI/6;// Initial vertical angle
+  view_main.angle_azimuth = -1.575;// Initial horizontal angle
+  view_main.angle_elevation = -0.95;// Initial vertical angle
   view_main.cam_R = normalize(vec3(cos(view_main.angle_azimuth - M_PI/2.0f), sin(view_main.angle_azimuth - M_PI/2.0f), 0));
   view_main.fov = configManager->parse_json_f("camera", "fov");
   view_main.view = "oblique";
@@ -67,9 +67,9 @@ void Viewport::viewport_reset(){
   //---------------------------
 
   float camPos = configManager->parse_json_f("camera", "initial_pos");
-  view_main.cam_P = vec3(camPos, camPos, camPos);
-  view_main.angle_azimuth = M_PI + M_PI/4;// Initial horizontal angle
-  view_main.angle_elevation = - M_PI/6;// Initial vertical angle
+  view_main.cam_P = vec3(0, 10, 15);
+  view_main.angle_azimuth = -1.5;// Initial horizontal angle
+  view_main.angle_elevation = -0.95;// Initial vertical angle
   view_main.cam_R = normalize(vec3(cos(view_main.angle_azimuth - M_PI/2.0f), sin(view_main.angle_azimuth - M_PI/2.0f), 0));
 
   //---------------------------

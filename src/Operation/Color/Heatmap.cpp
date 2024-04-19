@@ -29,7 +29,7 @@ Heatmap::Heatmap(){
   this->attribManager = new Attribut();
   this->gpuManager = new GPU_data();
 
-  this->heatmap_mode = 1;
+  this->heatmap_mode = 2;
   this->is_normalization = true;
   this->range_norm = vec2(0.0f, 1.0f);
   this->range_height = vec2(-2.0f, 2.0f);

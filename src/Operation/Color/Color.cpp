@@ -57,7 +57,7 @@ void Color::update_configuration(){
   vec2 intensity_range = vec2((float) min/255, (float) max/255);
 
   *heatmap_I_range = intensity_range;
-  this->color_mode = configManager->parse_json_i("parameter", "color_mode");
+  this->color_mode = 2;
   this->range_intensity = intensity_range;
   this->specific_color = vec4(1, 1, 1, 1);
 
